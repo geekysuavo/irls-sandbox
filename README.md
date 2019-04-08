@@ -3,10 +3,10 @@
 
 A safe place to play with _iteratively reweighted least squares_ (IRLS),
 and _variationally reweighted least squares_ (VRLS), with a specific
-emphasis on reconstructing _nonuniformly sampled_ (NUS)
-_nuclear magnetic resonance_ (NMR) datasets.
+emphasis on reconstructing nonuniformly sampled (NUS)
+nuclear magnetic resonance (NMR) datasets.
 
-Technical details of the algorithms are _in preparation for submission to_:
+Technical details of the algorithms are in preparation for submission to:
 
 > Worley, B., _Variationally reweighted least squares for
 > sparse recovery_, Journal of Magnetic Resonance, 2019.
@@ -34,5 +34,5 @@ The **irls-sandbox** sources are released under the
 [MIT license](https://opensource.org/licenses/MIT). See the
 [LICENSE.md](LICENSE.md) file for the complete license terms.
 
-_~ Brad._
+**~ Brad.**
 

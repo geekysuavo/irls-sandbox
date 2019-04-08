@@ -9,13 +9,13 @@ will probably also end up here..._
 
 The iteratively reweighted taxonomy begins with:
 
-* *IRLS*: Maximum a posteriori (MAP) estimators.
-* *VRLS*: Approximate minimum mean-square error (MMSE) estimators.
+* **IRLS**: Maximum a posteriori (MAP) estimators.
+* **VRLS**: Approximate minimum mean-square error (MMSE) estimators.
 
 Within each of these, have the next split:
 
-* _Direct_ methods estimate the unknown spectrum *x*.
-* _Indirect_ methods estimate the unknown time-domain signal *z*.
+* _Direct_ methods estimate the unknown spectrum **x**.
+* _Indirect_ methods estimate the unknown time-domain signal **z**.
 
 Next, we split based on how data consistency is enforced:
 
@@ -23,7 +23,7 @@ Next, we split based on how data consistency is enforced:
 * _Inequality-constrained_ methods permit inexact data consistency.
 * _Unconstrained_ methods use soft restraints to suggest consistency.
 
-Finally, within *VRLS*, we split based on which variational family
+Finally, within **VRLS**, we split based on which variational family
 is being used to approximate the posterior distribution:
 
 * _Mean-field (MF)_ neglects all posterior correlations.
