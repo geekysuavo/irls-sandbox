@@ -15,6 +15,14 @@ Technical details of the algorithms are _in preparation for submission to_:
 
 FIXME
 
+### Papers and associated figures
+
+FIXME
+
+### Solver implementations
+
+FIXME
+
 ### Symbolic computations
 
 Scripts used to confirm or obtain various mathematical results used
