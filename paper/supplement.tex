@@ -1,0 +1,405 @@
+
+% ============================================================================
+\documentclass{article}
+
+% ============================================================================
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage[
+ top=1in,
+ bottom=1.5in,
+ inner=1.5in,
+ outer=1.5in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{parskip}
+\usepackage{color}
+\usepackage{soul}
+
+% ============================================================================
+\newcommand{\E}[2]{\mathbb{E}_{#2}\left[#1\right]}
+\newcommand{\m}[1]{\boldsymbol{#1}}
+
+\DeclareMathOperator{\trace}{tr}
+
+% ============================================================================
+\begin{document}
+
+\author{Bradley Worley}
+\title{Supplementary information for: \\
+\emph{\Large Variationally reweighted least squares for sparse recovery}}
+
+\maketitle
+
+% ============================================================================
+\section{IRLS}
+\label{s:irls}
+The EC-IRLS and UC-IRLS algorithms follow from minimizing the function,
+\begin{equation}
+\psi(\m{x}, \m{\sigma}) =
+ \frac{1}{2} \sum_{i=1}^n \left(
+  \frac{|x_i|^2}{\sigma_i^2} + \frac{\sigma_i^2}{\xi^2}
+ \right)
+\label{eq:psi}
+\end{equation}
+with and without data agreement constraints on $\m{x}$, respectively.
+Iterations consist of alternating $\m{x}$ and $\m{\sigma}$ updates.
+The iterates are initialized to $\m{x}^{(0)} = \m{0}$ and
+$\m{\sigma}^{(0)} = \m{1}$. To ease notation, define
+the (diagonal) IRLS weight matrix $\m{W}$ such that,
+\begin{equation}
+W_{ij} = \begin{cases}
+ 1 / \sigma_i^2 &\text{if } i = j \\
+ 0 &\text{if } i \ne j
+\end{cases}
+\label{eq:wmatrix}
+\end{equation}
+
+% ----------------------------------------------------------------------------
+\subsection{Equality-constrained IRLS}
+\subsubsection{Updates to $\m{x}$}
+The EC-IRLS $\m{x}$-update is given by the sub-problem,
+\begin{equation}
+\m{x}^{(t+1)} =
+\left\{
+\begin{aligned}
+ \underset{\m{x}}{\arg\min} &\;
+ \psi\big( \m{x}, \m{\sigma}^{(t)} \big)
+\\
+ \text{such that} &\; \m{y} = \m{A} \m{x}
+\end{aligned}
+\right.
+\label{prob:ec_irls_x}
+\end{equation}
+
+Introduce the Lagrangian for \eqref{prob:ec_irls_x},
+\begin{equation}
+\begin{aligned}
+\mathcal{L}(\m{x}, \m{\lambda}) &=
+ \psi\big( \m{x}, \m{\sigma}^{(t)} \big) +
+ \m{\lambda}^* ( \m{y} - \m{A} \m{x} )
+\\ &=
+ \frac{1}{2} \m{x}^* \m{W}^{(t)} \m{x} +
+ \m{\lambda}^* ( \m{y} - \m{A} \m{x} )
+\end{aligned}
+\label{eq:lagrangian_irls_x}
+\end{equation}
+where terms that do not involve $\m{x}$ have been dropped, because
+they contribute a constant offset to the Lagrangian. Setting the
+$\m{x}$-gradient of $\mathcal{L}(\m{x}, \m{\lambda})$ equal to
+zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{x}} \mathcal{L}(\m{x}, \m{\lambda}) &=
+ \m{W}^{(t)} \m{x} - \m{A}^* \m{\lambda} = \m{0}
+\\ \implies\quad
+\m{x} &= \big(\m{W}^{(t)}\big)^{-1} \m{A}^* \m{\lambda}
+\end{aligned}
+\label{eq:ec_irls_xl}
+\end{equation}
+
+Substituting this back into the Lagrangian yields the dual function,
+\begin{equation}
+\begin{aligned}
+g(\m{\lambda}) &\triangleq
+ \underset{\m{x}}{\inf} \;\mathcal{L}(\m{x}, \m{\lambda})
+\\ &=
+ \frac{1}{2} \m{\lambda}^* \m{A}
+ \big(\m{W}^{(t)}\big)^{-1} \m{W}^{(t)}
+ \big(\m{W}^{(t)}\big)^{-1} \m{A}^* \m{\lambda}
+ +\m{\lambda}^* \m{y}
+ -\m{\lambda}^* \m{A} \big(\m{W}^{(t)}\big)^{-1} \m{A}^* \m{\lambda}
+\\ &=
+ -\frac{1}{2} \m{\lambda}^* \m{A}
+  \big(\m{W}^{(t)}\big)^{-1}
+  \m{A}^* \m{\lambda}
+ +\m{\lambda}^* \m{y}
+\end{aligned}
+\label{eq:ec_irls_dual}
+\end{equation}
+
+Maximizing this dual function by setting its $\m{\lambda}$-gradient
+to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\lambda}} g(\m{\lambda}) &=
+ -\m{A} \big(\m{W}^{(t)}\big)^{-1} \m{A}^* \m{\lambda}
+ +\m{y} = \m{0}
+\\ \implies \quad
+\m{\lambda} &=
+ \left( \m{A} \big(\m{W}^{(t)}\big)^{-1} \m{A}^* \right)^{-1} \m{y}
+\end{aligned}
+\label{eq:ec_irls_lambda}
+\end{equation}
+
+Thus, the solution to sub-problem \eqref{prob:ec_irls_x} is,
+\begin{equation}
+\m{x}^{(t+1)} =
+ \big(\m{W}^{(t)}\big)^{-1} \m{A}^*
+ \left( \m{A} \big(\m{W}^{(t)}\big)^{-1} \m{A}^* \right)^{-1} \m{y}
+\label{eq:ec_irls_x}
+\end{equation}
+
+% ----------------------------------------------------------------------------
+\subsubsection{Updates to $\m{\sigma}$}
+The EC-IRLS $\m{\sigma}$-update is given by the sub-problem,
+\begin{equation}
+\m{\sigma}^{(t+1)} =
+ \underset{\m{\sigma}}{\arg\min} \;
+ \psi\big( \m{x}^{(t+1)}, \m{\sigma} \big)
+\label{prob:ec_irls_sigma}
+\end{equation}
+
+Because $\psi(\m{x}, \m{\sigma})$ is separable with respect to each
+$\sigma_i$, this involves the solution of $n$ independent sub-problems:
+\begin{equation}
+\sigma_i^{(t+1)} =
+ \underset{\sigma_i}{\arg\min} \left(
+  \frac{\big| x_i^{(t+1)} \big|^2}{2 \sigma_i^2} +
+  \frac{\sigma_i^2}{2 \xi^2}
+ \right)
+\label{prob:ec_irls_sigma_i}
+\end{equation}
+
+Setting the gradient of this function equal to zero yields the
+solution,
+\begin{equation}
+\begin{aligned}
+\frac{\partial}{\partial \sigma_i} \left(
+  \frac{\big| x_i^{(t+1)} \big|^2}{2 \sigma_i^2} +
+  \frac{\sigma_i^2}{2 \xi^2}
+ \right) &=
+-\frac{\big| x_i^{(t+1)} \big|^2}{\sigma_i^3} +
+ \frac{\sigma_i}{\xi^2} = 0
+\\ \implies \quad
+\sigma_i^{(t+1)} &= \sqrt{\xi \big| x_i^{(t+1)} \big|}
+\end{aligned}
+\label{eq:ec_irls_sigma_i}
+\end{equation}
+which is equivalent (by the definition of $\m{W}$) to the following
+weight update:
+\begin{equation}
+W_{ii}^{(t+1)} =
+ \frac{1}{\big( \sigma_i^{(t+1)} \big)^2} =
+ \frac{1}{\xi \big| x_i^{(t+1)} \big|}
+\label{eq:ec_irls_w}
+\end{equation}
+
+% ----------------------------------------------------------------------------
+\subsection{Unconstrained IRLS}
+In UC-IRLS, the exact constraints on $\m{x}$ are replaced with an
+$\ell_2$-norm term, resulting in a new objective function,
+\begin{equation}
+\psi_\nu(\m{x}, \m{\sigma}) =
+ \psi(\m{x}, \m{\sigma}) + \frac{1}{2 \nu} \| \m{y} - \m{A} \m{x} \|_2^2
+\label{eq:uc_irls_obj}
+\end{equation}
+
+% ----------------------------------------------------------------------------
+\subsubsection{Updates to $\m{x}$}
+The UC-IRLS $\m{x}$-update is given by the sub-problem,
+\begin{equation}
+\m{x}^{(t+1)} =
+ \underset{\m{x}}{\arg\min} \;
+ \psi_\nu\big( \m{x}, \m{\sigma}^{(t)} \big)
+\label{prob:uc_irls_x}
+\end{equation}
+
+Setting the $\m{x}$-gradient of
+$\psi_\nu\big( \m{x}, \m{\sigma}^{(t)} \big)$
+equal to zero yields the solution to sub-problem \eqref{prob:uc_irls_x},
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{x}} \psi_\nu\big( \m{x}, \m{\sigma}^{(t)} \big) &=
+ \m{W}^{(t)} \m{x} + \nu^{-1} \m{A}^* \m{A} \m{x} -
+ \nu^{-1} \m{A}^* \m{y} = \m{0}
+\\ \implies \quad
+\m{x}^{(t+1)} &=
+ \nu^{-1} \left(
+  \m{W}^{(t)} + \nu^{-1} \m{A}^* \m{A}
+ \right)^{-1} \m{A}^* \m{y}
+\end{aligned}
+\label{eq:uc_irls_x}
+\end{equation}
+
+% ----------------------------------------------------------------------------
+\subsubsection{Updates to $\m{\sigma}$}
+Because $\psi_\nu(\m{x}, \m{\sigma})$ only depends on $\m{\sigma}$ through
+$\psi(\m{x}, \m{\sigma})$, the UC-IRLS $\m{\sigma}$-update is identical
+to the EC-IRLS update given by equation \eqref{eq:ec_irls_sigma_i}.
+
+% ============================================================================
+\section{Direct VRLS}
+\label{s:vrls}
+Direct VRLS algorithms involve minimizing the function,
+\begin{equation}
+\bar\psi(\m{\mu}, \m{\gamma}, \m{\alpha}, \m{\beta}) \triangleq
+\E{\psi(\m{x}, \m{\sigma})}{q} =
+ \frac{1}{2} \sum_{i=1}^n \left(
+  \frac{|\mu_i|^2 + \gamma_i}{\beta_i \sqrt{\alpha_i}} +
+  \frac{\beta_i (\sqrt{\alpha_i} + \beta_i)}{\xi^2}
+ \right)
+\label{eq:psibar}
+\end{equation}
+with and without data agreement constraints on $\{\m{\mu}, \m{\gamma}\}$,
+respectively, where $q$ denotes the variational approximation of the
+posterior $p(\m{x}\mid\m{y})$.
+
+\hl{FIXME: iterate initialization}
+
+To ease notation once again, define
+the (diagonal) VRLS weight matrix $\m{V}$ such that,
+\begin{equation}
+V_{ij} = \begin{cases}
+ \E{1 / \sigma_i^2}{q} &\text{if } i = j \\
+ 0 &\text{if } i \ne j
+\end{cases}
+\label{eq:vmatrix}
+\end{equation}
+
+\hl{FIXME}
+
+% ============================================================================
+\section{The $h\ell_1$ density}
+\label{s:hprior}
+The ``hierarchical-form Laplace'' probability density function,
+or $h\ell_1$ density for short, has the following form:
+\begin{equation}
+h(\sigma; \alpha, \beta) =
+ \frac{1}{Z(\alpha, \beta)}
+ \exp\left\{
+  -\frac{\alpha}{2 \sigma^2}
+  -\frac{\sigma^2}{2 \beta^2}
+ \right\}
+\label{eq:hprior}
+\end{equation}
+where $\alpha, \beta, \sigma > 0$ and $Z(\alpha, \beta)$ is the
+normalization function, which is defined to be,
+\begin{equation}
+\begin{aligned}
+Z(\alpha, \beta) &\triangleq
+ \int_0^\infty \exp\left\{
+  -\frac{\alpha}{2 \sigma^2}
+  -\frac{\sigma^2}{2 \beta^2}
+ \right\} d\sigma
+\\ &=
+ \beta \sqrt{\frac{\pi}{2}}
+ \exp\left\{ -\frac{\sqrt{\alpha}}{\beta} \right\}
+\end{aligned}
+\label{eq:hprior_z}
+\end{equation}
+
+Thus, the fully normalized $h\ell_1$ density is equal to,
+\begin{equation}
+h(\sigma; \alpha, \beta) =
+ \frac{1}{\beta} \sqrt{\frac{2}{\pi}}
+ \exp\left\{
+  -\frac{\alpha}{2 \sigma^2}
+  -\frac{\sigma^2}{2 \beta^2}
+  +\frac{\sqrt{\alpha}}{\beta}
+ \right\}
+\label{eq:hprior_norm}
+\end{equation}
+
+% ----------------------------------------------------------------------------
+\subsection{Relevant expectations}
+\subsubsection{Expected variance}
+The expected value of $\sigma^2$ is given by,
+\begin{equation}
+\E{\sigma^2}{h} =
+ \int_0^\infty \sigma^2 h(\sigma; \alpha, \beta) \, d\sigma =
+ \beta (\sqrt{\alpha} + \beta)
+\label{eq:expect_s2}
+\end{equation}
+
+\subsubsection{Expected inverse variance}
+The expected value of $1 / \sigma^2$ is given by,
+\begin{equation}
+\E{\frac{1}{\sigma^2}}{h} =
+ \int_0^\infty \frac{1}{\sigma^2} h(\sigma; \alpha, \beta) \, d\sigma =
+ \frac{1}{\beta \sqrt{\alpha}}
+\label{eq:expect_s2_inv}
+\end{equation}
+
+\subsubsection{Entropy}
+Using \eqref{eq:expect_s2} and \eqref{eq:expect_s2_inv}, the entropy
+of the $h\ell_1$ density is found to equal,
+\begin{equation}
+\mathbb{H}[h(\sigma; \alpha, \beta)] =
+ -\E{\ln h(\sigma; \alpha, \beta)}{h} =
+ \frac{1}{2} + \frac{1}{2} \ln\left( \frac{\pi \beta^2}{2} \right)
+\label{eq:hprior_entropy}
+\end{equation}
+
+% ----------------------------------------------------------------------------
+\subsection{Relationship to the Laplace density}
+The probability density function of a Laplace-distributed random variable
+$x \sim \mathcal{L}(\xi)$ is given by,
+\begin{equation}
+f_{\mathcal{L}}(x; \xi) =
+ \frac{1}{2 \xi} \exp\left\{
+  -\frac{|x|}{\xi}
+ \right\}
+\label{eq:laplace_pdf}
+\end{equation}
+where $\xi > 0$ is called the scale parameter. This density may be
+obtained by marginalizing a suitably constructed joint density
+involving $x$. More concretely, consider the joint probability
+density of the random variables $x$ and $\sigma$, where:
+\begin{itemize}
+ \item $x \mid \sigma \sim \mathcal{N}(0, \sigma^2)$, i.e.\
+  conditioned on $\sigma$, $x$ is normally distributed with
+  zero mean and variance $\sigma^2$, and
+ \item $\sigma \sim \mathcal{R}(\xi)$, i.e.\
+  $\sigma$ is Rayleigh-distributed with scale parameter $\xi$.
+\end{itemize}
+
+The joint density over $(x,\sigma)$ is equal to,
+\begin{equation}
+\begin{aligned}
+p(x, \sigma) &=
+ p(x \mid \sigma) \, p(\sigma)
+\\ &=
+ f_{\mathcal{N}}(x; 0, \sigma^2) \,
+ f_{\mathcal{R}}(\sigma; \xi)
+\\ &=
+ \frac{1}{\sqrt{2 \pi \sigma^2}} \exp\left\{
+  -\frac{|x|^2}{2 \sigma^2}
+ \right\} \cdot
+ \frac{\sigma}{\xi^2} \exp\left\{
+  -\frac{\sigma^2}{2 \xi^2}
+ \right\}
+\\ &=
+ \frac{1}{\xi^2 \sqrt{2 \pi}} \exp\left\{
+  -\frac{|x|^2}{2 \sigma^2}
+  -\frac{\sigma^2}{\xi^2}
+ \right\}
+\end{aligned}
+\label{eq:joint_pdf}
+\end{equation}
+which is proportional to an $h\ell_1$ density having parameters
+$\alpha = |x|^2$ and $\beta = \xi$. Marginalizing this joint density
+with respect to $\sigma$ using \eqref{eq:hprior_z} results in,
+\begin{equation}
+\begin{aligned}
+p(x) =
+\int_0^\infty p(x, \sigma) \, d\sigma &=
+ \frac{1}{\xi^2 \sqrt{2 \pi}} \int_0^\infty \exp\left\{
+  -\frac{|x|^2}{2 \sigma^2}
+  -\frac{\sigma^2}{\xi^2}
+ \right\} d\sigma
+\\ &=
+ \frac{1}{\xi^2 \sqrt{2 \pi}} Z(|x|^2, \xi)
+\\ &=
+ \frac{1}{\xi^2 \sqrt{2 \pi}}
+ \xi \sqrt{\frac{\pi}{2}}
+ \exp\left\{ -\frac{\sqrt{|x|^2}}{\xi} \right\}
+\\ &=
+ \frac{1}{2 \xi} \exp\left\{ -\frac{|x|}{\xi} \right\}
+\end{aligned}
+\label{eq:marginal_pdf}
+\end{equation}
+which is a Laplace distribution on $x$ with shape parameter $\xi$.
+
+% ============================================================================
+\end{document}
