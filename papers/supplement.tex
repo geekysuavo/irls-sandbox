@@ -229,6 +229,30 @@ $\psi(\m{x}, \m{\sigma})$, the UC-IRLS $\m{\sigma}$-update is identical
 to the EC-IRLS update given by equation \eqref{eq:ec_irls_sigma_i}.
 
 % ============================================================================
+\section{Variational approximations}
+\label{s:var_approx}
+In variational inference, we approximate the exact posterior density
+$p(\m{x}, \m{\sigma} \mid \m{y})$ with an approximating density
+$q(\m{x}, \m{\sigma})$, which is restricted to a set of feasible
+density functions called the variational family $\mathcal{Q}$.
+
+Methods that infer the full time-domain signal $\m{z} = \m{\Phi} \m{x}$
+employ approximating densities of the form $q(\m{z}, \m{\sigma})$. We
+refer to these methods as \emph{indirect} methods, whereas those
+inferring $\m{x}$ are \emph{direct}. Each method is defined by
+its own variational family:
+\begin{itemize}
+ \item $\mathcal{Q}_{\text{SMF}}^{\m{x}}$: Direct, structured mean-field.
+ \item $\mathcal{Q}_{\text{MF}}^{\m{x}}$: Direct, factorized mean-field.
+ \item $\mathcal{Q}_{\text{SMF}}^{\m{z}}$: Indirect, structured mean-field.
+ \item $\mathcal{Q}_{\text{MF}}^{\m{z}}$: Indirect, factorized mean-field.
+\end{itemize}
+
+\hl{FIXME: Describe the difference between SMF and MF.}
+
+\hl{FIXME: Document the free-form variational updates for all families.}
+
+% ============================================================================
 \section{Direct VRLS}
 \label{s:vrls}
 Direct VRLS algorithms involve minimizing the function,
@@ -241,9 +265,10 @@ Direct VRLS algorithms involve minimizing the function,
  \right)
 \label{eq:psibar}
 \end{equation}
+\hl{FIXME: $\m{\beta}$ can be removed by minimization}
 with and without data agreement constraints on $\{\m{\mu}, \m{\gamma}\}$,
 respectively, where $q$ denotes the variational approximation of the
-posterior $p(\m{x}\mid\m{y})$.
+posterior $p(\m{x}, \m{\sigma} \mid \m{y})$.
 
 \hl{FIXME: iterate initialization}
 
