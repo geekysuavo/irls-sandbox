@@ -443,13 +443,13 @@ Furthermore, the expected potential is the \emph{convolution} of
 the UC-IRLS objective function with $q(\m{x}, \m{\sigma})$, so
 variational inference is minimizing a smoothed version of the
 MAP objective. Finally, this smoothed objective is also convex,
-as we shall shortly demonstrate for specific examples. 
+as it is the convolution of a convex function with a non-negative
+function.
 
 \begin{itemize}
  \item Baked-in ``$\epsilon$-correction'' related to the variance
   estimate, which provides a natural interpretation of Dabechies'
   $\epsilon$ as a smoothing kernel width.
- \item Show convexity of the variational objective.
  \item Prove convergence of VRLS, maybe rate too?
  \item From unconstrained to constrained: explore the severity of
   the bias-variance tradeoff in the variational framework.

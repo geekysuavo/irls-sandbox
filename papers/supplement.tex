@@ -268,19 +268,59 @@ neglect all posterior correlations, i.e.:
 \label{eq:smf_mf}
 \end{equation}
 
+Given a certain variational family, each factor of $q(\m{x}, \m{\sigma})$
+is updated as follows:
+\begin{enumerate}
+ \item Take the expectation of $\ln p(\m{x}, \m{\sigma}, \m{y})$ with
+  respect to all factors other than the factor being updated.
+ \item Exponentiate the resulting expectation and renormalize.
+\end{enumerate}
+This process is referred to as ``free-form'' variational updating, as the
+form of the updated factor was determined by the calculus of variations,
+not by the specification of $\mathcal{Q}$. The remainder of this section
+demonstrates the results of free-form updates for direct methods.
+
 % ----------------------------------------------------------------------------
 \subsection{Direct methods}
 \label{ss:var_direct}
 
 \subsubsection{SMF $q(\m{x})$ updates}
-\begin{equation*}
-q^*(\m{x}) = \frac{
+In practice, the form of the updated factor is determined by examining
+it in logarithmic form, i.e.:
+\begin{equation}
+\begin{aligned}
+q^*(\m{x}) &= \frac{
  \exp\left(
   \E{\ln p(\m{x}, \m{\sigma}, \m{y})}{q(\m{\sigma})}
  \right)}
 {\int_{\mathcal{X}} \exp\left(
   \E{\ln p(\m{x}, \m{\sigma}, \m{y})}{q(\m{\sigma})}
  \right) d\m{x}}
+\\ \equiv \quad
+\ln q^*(\m{x}) &=
+ \E{\ln p(\m{x}, \m{\sigma}, \m{y})}{q(\m{\sigma})} + \text{const.}
+\end{aligned}
+\label{eq:direct_smf_x}
+\end{equation}
+which in this case is given by,
+\begin{equation*}
+\begin{aligned}
+\ln q^*(\m{x}) &=
+ -\frac{1}{2 \nu} \| \m{y} - \m{A} \m{x} \|_2^2
+ -\frac{1}{2} \m{x}^* \m{V} \m{x}
+ +\text{const.}
+\end{aligned}
+\end{equation*}
+where $\m{V} = \E{\m{W}}{q(\m{\sigma})}$ is the variational weight matrix.
+This function contains linear and quadratic terms in $\m{x}$, i.e. $x_i$
+and $x_i x_j$, and therefore matches a multivariate normal whose mean
+and variance are given by (after completing the square):
+\begin{equation*}
+\begin{aligned}
+\m{\mu} &= \nu^{-1} \m{\Gamma} \m{A}^* \m{y}
+\\
+\m{\Gamma} &= \left( \nu^{-1} \m{A}^* \m{A} + \m{V} \right)^{-1}
+\end{aligned}
 \end{equation*}
 
 \subsubsection{MF $q(x_i)$ updates}
