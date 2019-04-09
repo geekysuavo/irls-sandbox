@@ -17,8 +17,9 @@
 \usepackage{soul}
 
 % ============================================================================
-\newcommand{\E}[2]{\mathbb{E}_{#2}\left[#1\right]}
 \newcommand{\m}[1]{\boldsymbol{#1}}
+\newcommand{\E}[2]{\mathbb{E}_{#2}\left[ #1 \right]}
+\newcommand{\entropy}[1]{\mathbb{H}\left[ #1 \right]}
 
 \DeclareMathOperator{\trace}{tr}
 
@@ -247,22 +248,76 @@ its own variational family:
  \item $\mathcal{Q}_{\text{SMF}}^{\m{z}}$: Indirect, structured mean-field.
  \item $\mathcal{Q}_{\text{MF}}^{\m{z}}$: Indirect, factorized mean-field.
 \end{itemize}
+Structured mean-field (SMF) models neglect posterior correlations between
+$\m{x}$ (or $\m{z}$) and $\m{\sigma}$, while mean-field (MF) methods
+neglect all posterior correlations, i.e.:
+\begin{equation}
+\begin{aligned}
+\mathcal{Q}_{\text{SMF}}^{\m{x}} &= \big\{
+  q : (\mathcal{X}, \mathcal{S}) \mapsto (0, \infty)
+ \;\big|\;
+  q(\m{x}, \m{\sigma}) = q(\m{x}) \, q(\m{\sigma})
+ \big\}
+\\
+\mathcal{Q}_{\text{MF}}^{\m{x}} &= \big\{
+  q : (\mathcal{X}, \mathcal{S}) \mapsto (0, \infty)
+ \;\big|\;
+  q(\m{x}, \m{\sigma}) = {\textstyle\prod}_{i=1}^n q(x_i) \, q(\sigma_i)
+ \big\}
+\end{aligned}
+\label{eq:smf_mf}
+\end{equation}
 
-\hl{FIXME: Describe the difference between SMF and MF.}
+% ----------------------------------------------------------------------------
+\subsection{Direct methods}
+\label{ss:var_direct}
 
-\hl{FIXME: Document the free-form variational updates for all families.}
+\subsubsection{SMF $q(\m{x})$ updates}
+\begin{equation*}
+q^*(\m{x}) = \frac{
+ \exp\left(
+  \E{\ln p(\m{x}, \m{\sigma}, \m{y})}{q(\m{\sigma})}
+ \right)}
+{\int_{\mathcal{X}} \exp\left(
+  \E{\ln p(\m{x}, \m{\sigma}, \m{y})}{q(\m{\sigma})}
+ \right) d\m{x}}
+\end{equation*}
+
+\subsubsection{MF $q(x_i)$ updates}
+\hl{FIXME}
+
+\subsubsection{$q(\m{\sigma})$ updates}
+\hl{FIXME}
+
+% ----------------------------------------------------------------------------
+\subsection{Indirect methods}
+\label{ss:var_indirect}
+
+\subsubsection{SMF $q(\m{z})$ updates}
+\hl{FIXME}
+
+\subsubsection{MF $q(z_i)$ updates}
+\hl{FIXME}
+
+\subsubsection{$q(\m{\sigma})$ updates}
+\hl{FIXME}
 
 % ============================================================================
 \section{Direct VRLS}
 \label{s:vrls}
 Direct VRLS algorithms involve minimizing the function,
 \begin{equation}
-\bar\psi(\m{\mu}, \m{\gamma}, \m{\alpha}, \m{\beta}) \triangleq
-\E{\psi(\m{x}, \m{\sigma})}{q} =
- \frac{1}{2} \sum_{i=1}^n \left(
-  \frac{|\mu_i|^2 + \gamma_i}{\beta_i \sqrt{\alpha_i}} +
-  \frac{\beta_i (\sqrt{\alpha_i} + \beta_i)}{\xi^2}
+\begin{aligned}
+\bar\psi(\m{\mu}, \m{\gamma}, \m{\alpha}) &\triangleq
+ \inf_{\m{\beta}} \left\{
+  \E{\psi(\m{x}, \m{\sigma})}{q(\m{x}, \m{\sigma})} -
+  \entropy{q(\m{\sigma})}
+ \right\}
+\\ &=
+ \frac{1}{2 \xi} \sum_{i=1}^n \left(
+  \frac{|\mu_i|^2 + \gamma_i}{\sqrt{\alpha_i}} + \sqrt{\alpha_i}
  \right)
+\end{aligned}
 \label{eq:psibar}
 \end{equation}
 \hl{FIXME: $\m{\beta}$ can be removed by minimization}
