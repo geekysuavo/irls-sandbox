@@ -319,15 +319,37 @@ and variance are given by (after completing the square):
 \begin{aligned}
 \m{\mu} &= \nu^{-1} \m{\Gamma} \m{A}^* \m{y}
 \\
-\m{\Gamma} &= \left( \nu^{-1} \m{A}^* \m{A} + \m{V} \right)^{-1}
+\m{\Gamma} &=
+ \m{P}^{-1} = \left( \nu^{-1} \m{A}^* \m{A} + \m{V} \right)^{-1}
 \end{aligned}
 \end{equation*}
+For expediency, we will use $\m{\gamma}$ to denote the diagonal elements
+of $\m{\Gamma}$.
 
 \subsubsection{MF $q(x_i)$ updates}
 \hl{FIXME}
 
 \subsubsection{$q(\m{\sigma})$ updates}
-\hl{FIXME}
+In both SMF and MF updates, the function $\ln q^*(\m{\sigma})$ is separable
+with respect to each $\sigma_i$, meaning that after exponentiation and
+renormalization, $q^*(\m{\sigma})$ will be a product of $n$ independent
+factors over each $\sigma_i$. Therefore, we examine the form of a
+single factor:
+\begin{equation*}
+\ln q^*(\sigma_i) =
+ -\frac{\E{|x_i|^2}{q(\m{x})}}{2 \sigma_i^2}
+ -\frac{\sigma_i^2}{2 \xi^2}
+ +\text{const.}
+\end{equation*}
+which is precisely that of the $h\ell_1$ density introduced in section
+\ref{s:hprior}, with parameters:
+\begin{equation*}
+\begin{aligned}
+\alpha_i &= \E{|x_i|^2}{q(\m{x})} = |\mu_i|^2 + \gamma_i
+\\
+\beta_i &= \xi
+\end{aligned}
+\end{equation*}
 
 % ----------------------------------------------------------------------------
 \subsection{Indirect methods}
