@@ -327,6 +327,24 @@ For expediency, we will use $\m{\gamma}$ to denote the diagonal elements
 of $\m{\Gamma}$.
 
 \subsubsection{MF $q(x_i)$ updates}
+In factorized mean-field models, the form of the updated factor over
+any $q(x_i)$ is given by,
+\begin{equation*}
+\begin{aligned}
+\ln q^*(x_i) &=
+ -\frac{1}{2} P_{ii} |x_i|^2
+ -\bar{x}_i \sum_{j \ne i} P_{ij} \mu_j
+ +\bar{x}_i \left[ \nu^{-1} \m{A}^* \m{y} \right]_i
+ +\text{const.}
+\\ &=
+ -\frac{1}{2} P_{ii} |x_i|^2
+ +\bar{x}_i \left(
+   \left[ \nu^{-1} \m{A}^* \m{y} - \m{P} \m{\mu} \right]_i
+     + P_{ii} \mu_i
+   \right)
+ +\text{const.}
+\end{aligned}
+\end{equation*}
 \hl{FIXME}
 
 \subsubsection{$q(\m{\sigma})$ updates}
@@ -354,6 +372,17 @@ which is precisely that of the $h\ell_1$ density introduced in section
 % ----------------------------------------------------------------------------
 \subsection{Indirect methods}
 \label{ss:var_indirect}
+Indirect methods may be formally obtained by first making a change of
+variables in the joint distribution:
+\begin{equation}
+p(\m{z}, \m{\sigma}, \m{y}) = \int_{\mathcal{X}}
+ p(\m{x}, \m{\sigma}, \m{y}) \, \delta(\m{z} - \m{\Phi} \m{x}) \, d\m{x}
+\label{eq:x_to_z}
+\end{equation}
+which amounts to replacing each instance of $\m{\Phi} \m{x}$ with $\m{z}$,
+and each instance of $\m{x}$ with $\m{\Phi}^{-1} \m{z}$ in the distribution.
+When $\m{\Phi}$ is unitary, as is the case for the iDFT, we use
+$\m{x} = \m{\Phi}^* \m{z}$.
 
 \subsubsection{SMF $q(\m{z})$ updates}
 \hl{FIXME}
