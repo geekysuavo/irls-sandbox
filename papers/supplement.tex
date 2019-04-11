@@ -326,26 +326,65 @@ and variance are given by (after completing the square):
 For expediency, we will use $\m{\gamma}$ to denote the diagonal elements
 of $\m{\Gamma}$.
 
-\subsubsection{MF $q(x_i)$ updates}
+\subsubsection{Serial MF $q(x_i)$ updates}
 In factorized mean-field models, the form of the updated factor over
 any $q(x_i)$ is given by,
 \begin{equation*}
-\begin{aligned}
-\ln q^*(x_i) &=
+\ln q^*(x_i) =
  -\frac{1}{2} P_{ii} |x_i|^2
  -\bar{x}_i \sum_{j \ne i} P_{ij} \mu_j
- +\bar{x}_i \left[ \nu^{-1} \m{A}^* \m{y} \right]_i
+ +\bar{x}_i \nu^{-1} \left[ \m{A}^* \m{y} \right]_i
  +\text{const.}
-\\ &=
+\end{equation*}
+which is a normal distribution with the following mean and variance:
+\begin{equation*}
+\begin{aligned}
+\mu_i &=
+ P_{ii}^{-1} \left(
+  \nu^{-1} \left[ \m{A}^* \m{y} \right]_i -
+  {\textstyle\sum}_{j \ne i} P_{ij} \mu_j
+ \right)
+\\
+\gamma_i &= P_{ii}^{-1}
+\end{aligned}
+\end{equation*}
+
+\subsubsection{Parallel MF $q(x_i)$ updates}
+We may rewrite $\ln q^*(x_i)$ in a way that exposes the matrix-vector
+product $\m{P} \m{\mu}$ more clearly,
+\begin{equation*}
+\ln q^*(x_i) =
  -\frac{1}{2} P_{ii} |x_i|^2
  +\bar{x}_i \left(
    \left[ \nu^{-1} \m{A}^* \m{y} - \m{P} \m{\mu} \right]_i
      + P_{ii} \mu_i
    \right)
  +\text{const.}
+\end{equation*}
+resulting in an equivalent update rule:
+\begin{equation*}
+\begin{aligned}
+\mu_i &\gets \mu_i +
+ P_{ii}^{-1} \left[ \nu^{-1} \m{A}^* \m{y} - \m{P} \m{\mu} \right]_i
+\\
+\gamma_i &\gets P_{ii}^{-1}
 \end{aligned}
 \end{equation*}
-\hl{FIXME}
+where the assignment symbol ``$\gets$'' has been used instead of ``$=$''
+to emphasize the difference between right-hand and left-hand $\m{\mu}$.
+This suggests the possibility of updating \emph{all} $q(x_i)$ factors
+in parallel with the following steps:
+\begin{enumerate}
+ \item $\forall i : \gamma_i \gets P_{ii}^{-1}$
+ \item $\m{\mu} \gets \m{\mu} + \m{\gamma} \circ \left(
+         \nu^{-1} \m{A}^* \m{y} - \m{P} \m{\mu}
+        \right)$
+\begin{equation*}
+\end{equation*}
+\end{enumerate}
+where ``$\circ$'' denotes the element-wise product. This update is
+exceedingly cheap when $\m{\Phi}$ is the iDFT matrix, because multiplying
+$\m{\mu}$ by $\m{P}$ involves two fast Fourier transforms.
 
 \subsubsection{$q(\m{\sigma})$ updates}
 In both SMF and MF updates, the function $\ln q^*(\m{\sigma})$ is separable
@@ -385,13 +424,92 @@ When $\m{\Phi}$ is unitary, as is the case for the iDFT, we use
 $\m{x} = \m{\Phi}^* \m{z}$.
 
 \subsubsection{SMF $q(\m{z})$ updates}
-\hl{FIXME}
+The updated SMF factor over $\m{z}$ has the logarithmic form,
+\begin{equation*}
+\ln q^*(\m{z}) =
+ -\frac{1}{2 \nu} \| \m{y} - \m{B} \m{z} \|_2^2
+ -\frac{1}{2} \m{z}^* \m{\Phi} \m{V} \m{\Phi}^* \m{z}
+ +\text{const.}
+\end{equation*}
+which implies $q^*(\m{z})$ is a multivariate normal distribution
+with mean and variance,
+\begin{equation*}
+\begin{aligned}
+\m{\tilde\mu} &= \nu^{-1} \m{\tilde\Gamma} \m{B}^\top \m{y}
+\\
+\m{\tilde\Gamma} &=
+ \m{\tilde P}^{-1} = \left(
+  \nu^{-1} \m{B}^\top \m{B} + \m{\Phi} \m{V} \m{\Phi}^*
+ \right)^{-1}
+\end{aligned}
+\end{equation*}
 
-\subsubsection{MF $q(z_i)$ updates}
-\hl{FIXME}
+\subsubsection{Serial MF $q(z_i)$ updates}
+The updated MF factor over each $z_i$ has the logarithmic form,
+\begin{equation*}
+\ln q^*(z_i) =
+ -\frac{1}{2} \tilde{P}_{ii} |z_i|^2
+ -\bar{z}_i \sum_{j \ne i} \tilde{P}_{ij} \tilde\mu_j
+ +\bar{z}_i \nu^{-1} \left[ \m{B}^\top \m{y} \right]_i
+ +\text{const.}
+\end{equation*}
+implying $q^*(z_i)$ is a normal distribution with mean and variance,
+\begin{equation*}
+\begin{aligned}
+\tilde\mu_i &=
+ \tilde{P}_{ii}^{-1} \left(
+  \nu^{-1} \left[ \m{B}^\top \m{y} \right]_i -
+  {\textstyle\sum}_{j \ne i} \tilde{P}_{ij} \tilde\mu_j
+ \right)
+\\
+\tilde\gamma_i &= \tilde{P}_{ii}^{-1}
+\end{aligned}
+\end{equation*}
+
+\subsubsection{Parallel MF $q(z_i)$ updates}
+Tracing the same logic as above, we obtain the following parallel update
+rule for $q^*(\m{z})$:
+\begin{enumerate}
+ \item $\forall i : \tilde\gamma_i \gets \tilde{P}_{ii}^{-1}$
+ \item $\m{\tilde\mu} \gets \m{\tilde\mu} + \m{\tilde\gamma} \circ \left(
+         \nu^{-1} \m{B}^\top \m{y} - \m{\tilde P} \m{\tilde\mu}
+        \right)$
+\begin{equation*}
+\end{equation*}
+\end{enumerate}
 
 \subsubsection{$q(\m{\sigma})$ updates}
-\hl{FIXME}
+In indirect methods, $q^*(\m{\sigma})$ still has the same form as its
+direct counterpart, but the computation of each $\alpha_i$ is
+subtly changed:
+\begin{equation*}
+\alpha_i = \E{|x_i|^2}{q(\m{z})} = |\mu_i|^2 + \gamma_i
+\end{equation*}
+These are the same $\m{\mu}$ and $\m{\gamma}$ as in the direct case, but
+now they must be computed \emph{through} $q(\m{z})$. Following the rules
+for linear transformation of normal random variates, we obtain the
+necessary values:
+\begin{equation*}
+\begin{aligned}
+\m{\mu} &= \m{\Phi}^* \m{\tilde\mu}
+\\
+\m{\Gamma} &= \m{\Phi} \m{\tilde\Gamma} \m{\Phi}^*
+\end{aligned}
+\end{equation*}
+While $\m{\mu}$ may be cheaply computed from $\m{\tilde\mu}$, the same
+cannot be said (in general) for $\m{\Gamma}$. Thankfully, when
+$\m{\tilde\Gamma}$ is diagonal (i.e.~in MF), we may obtain the
+diagonal elements of $\m{\Gamma}$ using a slightly cheaper
+expression:
+\begin{equation*}
+\m{\gamma} = \left| \m{\Phi} \right|^2 \m{\tilde\gamma}
+\end{equation*}
+where the squared modulus $|\cdot|^2$ is applied element-wise to
+$\m{\Phi}$. Even better, when $\m{\Phi}$ is the iDFT matrix, we
+obtain the following simplification:
+\begin{equation*}
+\forall i : \gamma_i = \frac{1}{n} \sum_{i=1}^n \tilde\gamma_i
+\end{equation*}
 
 % ============================================================================
 \section{Direct VRLS}
@@ -402,16 +520,16 @@ Direct VRLS algorithms involve minimizing the function,
 \bar\psi(\m{\mu}, \m{\gamma}, \m{\alpha}) &\triangleq
  \inf_{\m{\beta}} \left\{
   \E{\psi(\m{x}, \m{\sigma})}{q(\m{x}, \m{\sigma})} -
-  \entropy{q(\m{\sigma})}
+  \entropy{q(\m{x}, \m{\sigma})}
  \right\}
 \\ &=
  \frac{1}{2 \xi} \sum_{i=1}^n \left(
   \frac{|\mu_i|^2 + \gamma_i}{\sqrt{\alpha_i}} + \sqrt{\alpha_i}
- \right)
+ \right) +
+ \frac{1}{2} \sum_{i=1}^n \ln \gamma_i
 \end{aligned}
 \label{eq:psibar}
 \end{equation}
-\hl{FIXME: $\m{\beta}$ can be removed by minimization}
 with and without data agreement constraints on $\{\m{\mu}, \m{\gamma}\}$,
 respectively, where $q$ denotes the variational approximation of the
 posterior $p(\m{x}, \m{\sigma} \mid \m{y})$.
@@ -422,7 +540,7 @@ To ease notation once again, define
 the (diagonal) VRLS weight matrix $\m{V}$ such that,
 \begin{equation}
 V_{ij} = \begin{cases}
- \E{1 / \sigma_i^2}{q} &\text{if } i = j \\
+ \E{1 / \sigma_i^2}{q(\sigma_i)} &\text{if } i = j \\
  0 &\text{if } i \ne j
 \end{cases}
 \label{eq:vmatrix}
