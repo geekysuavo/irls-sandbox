@@ -517,7 +517,7 @@ obtain the following simplification:
 Direct VRLS algorithms involve minimizing the function,
 \begin{equation}
 \begin{aligned}
-\bar\psi(\m{\mu}, \m{\gamma}, \m{\alpha}) &\triangleq
+\Psi(\m{\mu}, \m{\gamma}, \m{\alpha}) &\triangleq
  \inf_{\m{\beta}} \left\{
   \E{\psi(\m{x}, \m{\sigma})}{q(\m{x}, \m{\sigma})} -
   \entropy{q(\m{x}, \m{\sigma})}
@@ -525,27 +525,36 @@ Direct VRLS algorithms involve minimizing the function,
 \\ &=
  \frac{1}{2 \xi} \sum_{i=1}^n \left(
   \frac{|\mu_i|^2 + \gamma_i}{\sqrt{\alpha_i}} + \sqrt{\alpha_i}
- \right) +
- \frac{1}{2} \sum_{i=1}^n \ln \gamma_i
+ \right)
+ -\frac{1}{2} \sum_{i=1}^n \ln \gamma_i
 \end{aligned}
 \label{eq:psibar}
 \end{equation}
 with and without data agreement constraints on $\{\m{\mu}, \m{\gamma}\}$,
 respectively, where $q$ denotes the variational approximation of the
-posterior $p(\m{x}, \m{\sigma} \mid \m{y})$.
-
-\hl{FIXME: iterate initialization}
-
-To ease notation once again, define
+posterior $p(\m{x}, \m{\sigma} \mid \m{y})$. Similarly to IRLS, the iterates
+are initialized to $\m{\mu}^{(0)} = \m{0}$, $\m{\gamma}^{(0)} = \m{1}$ and
+$\m{\alpha}^{(0)} = \m{1}$. To ease notation once again, define
 the (diagonal) VRLS weight matrix $\m{V}$ such that,
 \begin{equation}
 V_{ij} = \begin{cases}
- \E{1 / \sigma_i^2}{q(\sigma_i)} &\text{if } i = j \\
+ 1/(\xi \sqrt{\alpha_i}) &\text{if } i = j \\
  0 &\text{if } i \ne j
 \end{cases}
 \label{eq:vmatrix}
 \end{equation}
 
+Note that $\Psi$ was defined such that $\m{\beta}$ is removed by
+minimization. As seen from the free-form variational updates to
+$q(\m{\sigma})$ above, $\m{\beta}$ is not a free parameter vector,
+but instead has its value fixed to $\xi \m{1}$.
+
+% ----------------------------------------------------------------------------
+\subsection{Equality-constrained VRLS}
+\hl{FIXME}
+
+% ----------------------------------------------------------------------------
+\subsection{Unconstrained VRLS}
 \hl{FIXME}
 
 % ============================================================================

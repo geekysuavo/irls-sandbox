@@ -446,10 +446,87 @@ MAP objective. Finally, this smoothed objective is also convex,
 as it is the convolution of a convex function with a non-negative
 function.
 
+At this point, many choices exist for how to proceed, so it will become
+exceedingly important to carefully define terms. First, we may choose to
+approximate $p(\m{x}, \m{\sigma} \mid \m{y})$ by inferring statistics
+for $\m{x}$ and $\m{\sigma}$, or we may choose to approximate
+$p(\m{z}, \m{\sigma} \mid \m{y})$ where $\m{z}$ is the iDFT of $\m{x}$,
+i.e.~$\m{z} = \m{\Phi} \m{x}$. We will refer to the former class of
+methods as \emph{direct}, and the latter class as \emph{indirect}.
+With IRLS, we may easily obtain $\m{z}_{\text{MAP}}$ by first solving
+for $\m{x}_{\text{MAP}}$ and Fourier-transforming, but the same will
+not hold true for certain types of variational methods.
+
+Our next modeling choice is in the variational family $\mathcal{Q}$. In
+fact, we need only specify how $q(\m{x}, \m{\sigma})$ \emph{factorizes}
+to construct a tractable variational inference algorithm that minimizes
+\eqref{prob:var_inf}. Specifying how $q$ factorizes is tantamount to
+making assumptions about which variables are correlated
+\emph{a posteriori}. For example, mean-field (MF) families factorize
+over all unknowns,
+\begin{equation}
+q(\m{x}, \m{\sigma}) =
+ {\textstyle\prod}_{i=1}^n q(x_i) \, q(\sigma_i)
+\label{eq:example_mf}
+\end{equation}
+which neglects all posterior correlations in $p$. This choice will lead
+to very efficient algorithms at the cost of accuracy. If a closer
+approximation to $p$ is needed, structured mean-field (SMF) families
+of the form,
+\begin{equation}
+q(\m{x}, \m{\sigma}) = q(\m{x}) \, q(\m{\sigma})
+\label{eq:example_smf}
+\end{equation}
+may be employed. These families capture additional posterior correlations
+at the expense of substantially increased computation.
+
+Finally, we may choose to move from unconstrained optimization of
+\eqref{prob:var_inf} to a constrained optimization problem. In IRLS,
+moving the data agreement term into a constraint was an effective means
+of side-stepping our lack of knowledge of the correct value of $\xi$.
+In VRLS, the value of $\xi$ remains important, even when constraints
+are employed. We may begin to understand this by examining the variational
+analogue to \eqref{eq:psi}:
+\begin{equation}
+\Psi(\m{\mu}, \m{\gamma}, \m{\alpha}) =
+ \frac{1}{2 \xi} \sum_{i=1}^n \left(
+  \frac{|\mu_i|^2 + \gamma_i}{\sqrt{\alpha_i}} + \sqrt{\alpha_i}
+ \right)
+ -\frac{1}{2} \sum_{i=1}^n \ln \gamma_i
+\label{eq:psibar}
+\end{equation}
+which results from taking the expectation of $\psi(\m{x}, \m{\sigma})$
+with $\m{x}$ normally distributed and $\m{\sigma}$ $h\ell_1$-distributed.
+Here, $\m{\mu}$ and $\m{\gamma}$ are the mean and marginal variance of
+$q(\m{x})$, and $\m{\alpha}$ is the weight parameter of $q(\m{\sigma})$.
+These choices of distributions were not made arbitrarily, but were
+instead determined through the calculus of variations. A detailed
+description of this process is given in the Supplementary Information.
+
+% ============================================================================
+\section{Materials and methods}
+\label{s:methods}
+Please fix me.
+
+% ============================================================================
+\section{Results and discussion}
+\label{s:results}
+Please fix me.
+
 \begin{itemize}
  \item Baked-in ``$\epsilon$-correction'' related to the variance
-  estimate, which provides a natural interpretation of Dabechies'
+  estimate, which provides a natural interpretation of Daubechies'
   $\epsilon$ as a smoothing kernel width.
+ \item The parameter $\xi$ tunes a different kind of bias-variance
+  tradeoff: the one in the space of distributions $q(\m{x}, \m{\sigma})$.
+  As $\xi \to 0$, $\gamma_i \to 0$ and we obtain ``MAP-like'' solutions.
+  Conversely, as $\xi \to \infty$, $\gamma_i$ increases and we lose
+  sparsity.
+ \item Note the presence of $\ln \gamma_i$ terms in equation
+  \eqref{eq:psibar}.
+These terms come from the entropy $\entropy{q(\m{x})}$. If the entropy
+terms were not present, we could trivially minimize $\Psi$ with respect
+to $\m{\gamma}$ by setting $\m{\gamma}$ to zero.
  \item Prove convergence of VRLS, maybe rate too?
  \item From unconstrained to constrained: explore the severity of
   the bias-variance tradeoff in the variational framework.
@@ -461,16 +538,6 @@ function.
  \item Discuss computational complexity of all methods, and
   dispell the myth that IRLS is matrix-bound.
 \end{itemize}
-
-% ============================================================================
-\section{Materials and methods}
-\label{s:methods}
-Please fix me.
-
-% ============================================================================
-\section{Results and discussion}
-\label{s:results}
-Please fix me.
 
 % ============================================================================
 \section{Conclusions}
