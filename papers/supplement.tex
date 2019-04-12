@@ -254,19 +254,21 @@ neglect all posterior correlations, i.e.:
 \begin{equation}
 \begin{aligned}
 \mathcal{Q}_{\text{SMF}}^{\m{x}} &= \big\{
-  q : (\mathcal{X}, \mathcal{S}) \mapsto (0, \infty)
+  q \in \mathcal{P}
  \;\big|\;
   q(\m{x}, \m{\sigma}) = q(\m{x}) \, q(\m{\sigma})
  \big\}
 \\
 \mathcal{Q}_{\text{MF}}^{\m{x}} &= \big\{
-  q : (\mathcal{X}, \mathcal{S}) \mapsto (0, \infty)
+  q \in \mathcal{P}
  \;\big|\;
   q(\m{x}, \m{\sigma}) = {\textstyle\prod}_{i=1}^n q(x_i) \, q(\sigma_i)
  \big\}
 \end{aligned}
 \label{eq:smf_mf}
 \end{equation}
+where $\mathcal{P}$ denotes the set of \emph{all} probability distributions
+over $(\m{x}, \m{\sigma})$.
 
 Given a certain variational family, each factor of $q(\m{x}, \m{\sigma})$
 is updated as follows:
@@ -278,7 +280,7 @@ is updated as follows:
 This process is referred to as ``free-form'' variational updating, as the
 form of the updated factor was determined by the calculus of variations,
 not by the specification of $\mathcal{Q}$. The remainder of this section
-demonstrates the results of free-form updates for direct methods.
+demonstrates the results of free-form updates of each method.
 
 % ----------------------------------------------------------------------------
 \subsection{Direct methods}
@@ -520,20 +522,20 @@ Direct VRLS algorithms involve minimizing the function,
 \Psi(\m{\mu}, \m{\gamma}, \m{\alpha}) &\triangleq
  \inf_{\m{\beta}} \left\{
   \E{\psi(\m{x}, \m{\sigma})}{q(\m{x}, \m{\sigma})} -
-  \entropy{q(\m{x}, \m{\sigma})}
+  \entropy{q(\m{\sigma})}
  \right\}
 \\ &=
  \frac{1}{2 \xi} \sum_{i=1}^n \left(
   \frac{|\mu_i|^2 + \gamma_i}{\sqrt{\alpha_i}} + \sqrt{\alpha_i}
  \right)
- -\frac{1}{2} \sum_{i=1}^n \ln \gamma_i
 \end{aligned}
 \label{eq:psibar}
 \end{equation}
 with and without data agreement constraints on $\{\m{\mu}, \m{\gamma}\}$,
-respectively, where $q$ denotes the variational approximation of the
-posterior $p(\m{x}, \m{\sigma} \mid \m{y})$. Similarly to IRLS, the iterates
-are initialized to $\m{\mu}^{(0)} = \m{0}$, $\m{\gamma}^{(0)} = \m{1}$ and
+and in the presence of an entropy term $\entropy{q(\m{x})}$, where $q$
+denotes the variational approximation of the posterior
+$p(\m{x}, \m{\sigma} \mid \m{y})$. Similarly to IRLS, the iterates are
+initialized to $\m{\mu}^{(0)} = \m{0}$, $\m{\gamma}^{(0)} = \m{1}$ and
 $\m{\alpha}^{(0)} = \m{1}$. To ease notation once again, define
 the (diagonal) VRLS weight matrix $\m{V}$ such that,
 \begin{equation}
@@ -549,12 +551,78 @@ minimization. As seen from the free-form variational updates to
 $q(\m{\sigma})$ above, $\m{\beta}$ is not a free parameter vector,
 but instead has its value fixed to $\xi \m{1}$.
 
+In what follows, the expectation of an $\ell_2$ norm with respect to
+a multivariate normal distribution will frequently appear. We employ
+the following identity:
+\begin{equation}
+\E{\| \m{y} - \m{A} \m{x} \|_2^2}
+  {\mathcal{N}(\m{x}; \m{\mu}, \m{\Gamma})} =
+\| \m{y} - \m{A} \m{\mu} \|_2^2 + \trace(\m{A}^* \m{A} \m{\Gamma})
+\label{eq:l2expect}
+\end{equation}
+which applies generally. When $\m{\Gamma}$ is a diagonal matrix with
+elements $\m{\gamma}$, the trace term simplifies into an inner product,
+\begin{equation}
+\trace(\m{A}^* \m{A} \m{\Gamma}) = \m{a}^\top \m{\gamma}
+\label{eq:diag_trace}
+\end{equation}
+where $\m{a}$ is the (real) vector of diagonal elements of $\m{A}^* \m{A}$.
+We will also employ $\m{b}$ as the vector of diagonal elements of
+$\m{B}^\top \m{B}$.
+
 % ----------------------------------------------------------------------------
-\subsection{Equality-constrained VRLS}
+\subsection{Unconstrained SMF}
+Dir-SMF-UC-VRLS minimizes the objective,
+\begin{equation}
+\Psi_\nu(\m{\mu}, \m{\Gamma}, \m{\alpha}) =
+ \Psi(\m{\mu}, \m{\gamma}, \m{\alpha})
+ +\frac{1}{2 \nu} \| \m{y} - \m{A} \m{\mu} \|_2^2
+ +\frac{1}{2 \nu} \trace(\m{A}^* \m{A} \m{\Gamma})
+ -\frac{1}{2} \ln \det(\m{\Gamma})
+\label{eq:uc_vrls_smf_obj}
+\end{equation}
+
+\subsubsection{$\m{\mu}$ updates}
+\hl{FIXME}
+
+\subsubsection{$\m{\Gamma}$ updates}
+\hl{FIXME}
+
+\subsubsection{$\m{\alpha}$ updates}
 \hl{FIXME}
 
 % ----------------------------------------------------------------------------
-\subsection{Unconstrained VRLS}
+\subsection{Unconstrained MF}
+Dir-MF-UC-VRLS minimizes the objective,
+\begin{equation}
+\Psi_\nu(\m{\mu}, \m{\gamma}, \m{\alpha}) =
+ \Psi(\m{\mu}, \m{\gamma}, \m{\alpha})
+ +\frac{1}{2 \nu} \| \m{y} - \m{A} \m{\mu} \|_2^2
+ +\frac{1}{2 \nu} \m{a}^\top \m{\gamma}
+ -\frac{1}{2} \sum_{i=1}^n \ln \gamma_i
+\label{eq:uc_vrls_mf_obj}
+\end{equation}
+
+\subsubsection{$\m{\mu}$ updates}
+\hl{FIXME}
+
+\subsubsection{$\m{\gamma}$ updates}
+\hl{FIXME}
+
+\subsubsection{$\m{\alpha}$ updates}
+\hl{FIXME}
+
+% ----------------------------------------------------------------------------
+\subsection{Equality-constrained MF}
+\hl{FIXME}
+
+\subsubsection{$\m{\mu}$ updates}
+\hl{FIXME}
+
+\subsubsection{$\m{\gamma}$ updates}
+\hl{FIXME}
+
+\subsubsection{$\m{\alpha}$ updates}
 \hl{FIXME}
 
 % ============================================================================
