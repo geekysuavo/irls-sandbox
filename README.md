@@ -15,7 +15,7 @@ Technical details of the algorithms are in preparation for submission to:
 
 FIXME
 
-### Papers and associated figures
+### Publication figures
 
 FIXME
 
