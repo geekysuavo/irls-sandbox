@@ -15,10 +15,6 @@ Technical details of the algorithms are in preparation for submission to:
 
 FIXME
 
-### Publication figures
-
-FIXME
-
 ### Solver implementations
 
 FIXME
@@ -27,6 +23,10 @@ FIXME
 
 Scripts used to confirm or obtain various mathematical results used
 in the manuscript are stored in [symbolic](symbolic).
+
+## Usage
+
+FIXME
 
 ## Licensing
 

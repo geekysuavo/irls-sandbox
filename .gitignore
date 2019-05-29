@@ -1,5 +1,6 @@
 # .gitignore
 .DS_Store
+.doit.db
 .*.swp
 papers/*.pdf
 papers/*.spl
