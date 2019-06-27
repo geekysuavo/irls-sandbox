@@ -4,6 +4,7 @@
  */
 
 #pragma once
+#include <limits>
 #include <random>
 #include <string>
 #include <iostream>
@@ -11,23 +12,23 @@
 
 /* problem instance variables:
  *
- *  @k: FIXME
- *  @m: FIXME
- *  @n: FIXME
+ *  @k: sparsity, number of nonzero entries in @x0.
+ *  @m: measurement count, number of elements of @y.
+ *  @n: solution vector size, number of elements of @x0.
  *
- *  @seed: FIXME
- *  @sigma: FIXME
+ *  @seed: pseudorandom number generator seed.
+ *  @stdev: standard deviation of the measurement errors.
  *
- *  @A: FIXME
- *  @x0: FIXME
- *  @y: FIXME
- *  @L: FIXME
+ *  @A: measurement/sensing matrix, @m by @n.
+ *  @x0: ground truth solution vector.
+ *  @y: measured signal vector.
+ *  @L: twice the maximal eigenvalue of the sensing matrix.
  */
 std::size_t k = 10;
 std::size_t m = 50;
 std::size_t n = 100;
 std::size_t seed = 47251;
-double sigma = 0.001;
+double stdev = 0.001;
 Eigen::MatrixXd A;
 Eigen::VectorXd y;
 Eigen::VectorXd x0;
@@ -35,7 +36,7 @@ double L;
 
 /* algorithm parameters:
  *
- *  @iters: FIXME
+ *  @iters: number of iterations.
  *
  *  @nu: FIXME
  *  @xi: FIXME
@@ -45,8 +46,8 @@ double nu = 0.001;
 double xi = 0.0;
 
 /* utility variables:
- *  @pi: FIXME
- *  @gen: FIXME
+ *  @pi: ratio of the circumference of a circle to its diameter. ;)
+ *  @gen: pseudorandom number generator.
  */
 constexpr double pi = 3.14159265358979323846264338327950288;
 std::default_random_engine gen;
@@ -71,7 +72,7 @@ static void inst_init (int argc, char **argv) {
     else if (key.compare("m") == 0) { m = std::stoi(val); }
     else if (key.compare("n") == 0) { n = std::stoi(val); }
     else if (key.compare("seed")  == 0) { seed = std::stoi(val); }
-    else if (key.compare("sigma") == 0) { sigma = std::stod(val); }
+    else if (key.compare("stdev") == 0) { stdev = std::stod(val); }
     else if (key.compare("iters") == 0) { iters = std::stoi(val); }
     else if (key.compare("nu") == 0) { nu = std::stod(val); }
     else if (key.compare("xi") == 0) { xi = std::stod(val); }
@@ -114,10 +115,10 @@ static void inst_init (int argc, char **argv) {
   y = A * x0;
 
   /* check if the noise is positive. */
-  if (sigma > 0) {
+  if (stdev > 0) {
     /* add noise to the data vector. */
     for (std::size_t i = 0; i < m; i++)
-      y(i) += sigma * nrm(gen);
+      y(i) += stdev * nrm(gen);
   }
 
   /* check if the regularization coefficient is unset. */
@@ -126,6 +127,7 @@ static void inst_init (int argc, char **argv) {
   }
 
   /* compute the dominant eigenvalue of the gramian matrix. */
+  const double tol = 2 * std::numeric_limits<double>::epsilon();
   Eigen::VectorXd b{n}, Ab{m};
   b = A.row(0);
   b.normalize();
@@ -138,7 +140,7 @@ static void inst_init (int argc, char **argv) {
 
     /* test for eigenvalue convergence. */
     double ev_new = Ab.dot(Ab) / b.dot(b);
-    if (std::abs(ev - ev_new) < 1e-15)
+    if (std::abs(ev - ev_new) <= tol)
       break;
 
     /* update the eigenvalue estimate. */

@@ -34,5 +34,5 @@ The **irls-sandbox** sources are released under the
 [MIT license](https://opensource.org/licenses/MIT). See the
 [LICENSE.md](LICENSE.md) file for the complete license terms.
 
-**~ Brad.**
+~ Brad.
 
