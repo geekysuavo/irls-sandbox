@@ -8,9 +8,9 @@ import os
 # task_solver: task generator for compiling all solver binaries.
 def task_solver():
   # solver: compile and link a solver binary from source.
-  def solver(meth, targets):
+  def solver(sol, targets):
     # get the source, header, and binary filenames.
-    source = os.path.join('src', f'{meth}.cc')
+    source = os.path.join('src', f'{sol}.cc')
     header = 'src/inst.hh'
     binary = targets[0]
 
@@ -24,17 +24,17 @@ def task_solver():
   # ---
 
   # loop over each required solver.
-  for method in solvers():
+  for sol in solvers():
     # get the associated filenames.
-    target = os.path.join('bin', method)
+    target = os.path.join('bin', sol)
     header = os.path.join('src', 'inst.hh')
-    source = os.path.join('src', f'{method}.cc')
+    source = os.path.join('src', f'{sol}.cc')
 
     # yield a task.
     yield {
-      'name': method,
+      'name': sol,
       'actions': [(create_folder, ['bin']),
-                  (solver, [method])],
+                  (solver, [sol])],
       'file_dep': [source, header],
       'task_dep': ['eigen3'],
       'targets': [target]

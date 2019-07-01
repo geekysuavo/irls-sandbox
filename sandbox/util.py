@@ -2,7 +2,8 @@
 # required imports.
 import random
 
-# solvers: FIXME
+# solvers: return a tuple of all solvers required by all experiments.
 def solvers():
-  return ('oracle',)
+  # FIXME -- automatically enumerate required solvers.
+  return ('oracle', 'irls-ec', 'irls-uc')
 

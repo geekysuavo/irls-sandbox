@@ -37,13 +37,24 @@ double L;
 /* algorithm parameters:
  *
  *  @iters: number of iterations.
+ *  @dual_iters: number of dual ascent iterations per iteration.
  *
- *  @nu: FIXME
- *  @xi: FIXME
+ *  @sigma: fixed "noise norm" value.
+ *  @omega: fixed "regularization norm" value.
+ *  @xi: fixed "norm balance" parameter value.
+ *
+ *  @nu_sigma: prior parameter for @sigma.
+ *  @nu_omega: prior parameter for @omega.
+ *  @nu_xi: prior parameter for @xi.
  */
 std::size_t iters = 1000;
-double nu = 0.001;
-double xi = 0.0;
+std::size_t dual_iters = 5;
+double sigma = 1e-6;
+double omega = 1;
+double xi = 1;
+double nu_sigma = 1e-6;
+double nu_omega = 1;
+double nu_xi = 1;
 
 /* utility variables:
  *  @pi: ratio of the circumference of a circle to its diameter. ;)
@@ -74,8 +85,13 @@ static void inst_init (int argc, char **argv) {
     else if (key.compare("seed")  == 0) { seed = std::stoi(val); }
     else if (key.compare("stdev") == 0) { stdev = std::stod(val); }
     else if (key.compare("iters") == 0) { iters = std::stoi(val); }
-    else if (key.compare("nu") == 0) { nu = std::stod(val); }
-    else if (key.compare("xi") == 0) { xi = std::stod(val); }
+    else if (key.compare("dual_iters") == 0) { dual_iters = std::stoi(val); }
+    else if (key.compare("sigma") == 0) { sigma = std::stod(val); }
+    else if (key.compare("omega") == 0) { omega = std::stod(val); }
+    else if (key.compare("xi") == 0)    { xi = std::stod(val); }
+    else if (key.compare("nu_sigma") == 0) { nu_sigma = std::stod(val); }
+    else if (key.compare("nu_omega") == 0) { nu_omega = std::stod(val); }
+    else if (key.compare("nu_xi") == 0)    { nu_xi = std::stod(val); }
   }
 
   /* prepare the required distributions. */
@@ -119,11 +135,6 @@ static void inst_init (int argc, char **argv) {
     /* add noise to the data vector. */
     for (std::size_t i = 0; i < m; i++)
       y(i) += stdev * nrm(gen);
-  }
-
-  /* check if the regularization coefficient is unset. */
-  if (xi == 0) {
-    /* FIXME: compute the coefficient. */
   }
 
   /* compute the dominant eigenvalue of the gramian matrix. */
