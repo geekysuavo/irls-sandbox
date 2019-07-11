@@ -24,17 +24,17 @@ int main (int argc, char **argv) {
   w.resize(n);
   w.setOnes();
 
-  /* precompute the noise variance. */
-  const double sigma2 = std::pow(sigma, 2);
-
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
     /* update the estimate. */
-    z = ((L/2) * x - A.transpose() * (A * x - y)) / sigma2;
-    x = z.array() / ((L/2) / sigma2 + w.array() / xi);
+    z = x;
+    x = (L*tau * z - 2*tau * A.transpose() * (A * z - y)).array()
+      / (L*tau + w.array());
 
     /* update the weights. */
-    w = (x.array().abs2() + 1e-6).sqrt().inverse();
+    z = x.array().abs2();
+    w = ((4*xi * z.array() + 9).sqrt() - 3)
+      / (2 * z.array());
   }
 
   /* output the final estimate with zero variance. */

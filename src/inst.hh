@@ -22,6 +22,7 @@
  *  @A: measurement/sensing matrix, @m by @n.
  *  @x0: ground truth solution vector.
  *  @y: measured signal vector.
+ *  @delta: diagonal of the sensing matrix gramian.
  *  @L: twice the maximal eigenvalue of the sensing matrix.
  */
 std::size_t k = 10;
@@ -32,32 +33,39 @@ double stdev = 0.001;
 Eigen::MatrixXd A;
 Eigen::VectorXd y;
 Eigen::VectorXd x0;
+Eigen::VectorXd delta;
 double L;
 
 /* algorithm parameters:
  *
  *  @iters: number of iterations.
+ *  @burn_iters: number of burn-in iterations for samplers.
  *  @dual_iters: number of dual ascent iterations per iteration.
  *
- *  @sigma: fixed "noise norm" value.
- *  @xi: fixed "norm balance" parameter value.
+ *  @tau: fixed noise precision value.
+ *  @xi: fixed regularization parameter value.
  *
- *  @nu_sigma: prior parameter for @sigma.
- *  @nu_xi: prior parameter for @xi.
+ *  @beta_tau: prior parameter for @tau.
+ *  @beta_xi: prior parameter for @xi.
  */
 std::size_t iters = 1000;
+std::size_t burn_iters = 100;
 std::size_t dual_iters = 5;
-double sigma = 1e-6;
+double tau = 1;
 double xi = 1;
-double nu_sigma = 1e-6;
-double nu_xi = 1;
+double beta_tau = 1;
+double beta_xi = 1;
 
 /* utility variables:
  *  @pi: ratio of the circumference of a circle to its diameter. ;)
  *  @gen: pseudorandom number generator.
+ *  @nrm: standard normal distribution.
+ *  @unif: standard uniform distribution.
  */
 constexpr double pi = 3.14159265358979323846264338327950288;
 std::default_random_engine gen;
+std::normal_distribution<double> nrm{0, 1};
+std::uniform_real_distribution<double> unif{0, 1};
 
 /* inst_init(): initialize the current problem instance.
  */
@@ -81,17 +89,17 @@ static void inst_init (int argc, char **argv) {
     else if (key.compare("seed")  == 0) { seed = std::stoi(val); }
     else if (key.compare("stdev") == 0) { stdev = std::stod(val); }
     else if (key.compare("iters") == 0) { iters = std::stoi(val); }
+    else if (key.compare("burn_iters") == 0) { burn_iters = std::stoi(val); }
     else if (key.compare("dual_iters") == 0) { dual_iters = std::stoi(val); }
-    else if (key.compare("sigma") == 0) { sigma = std::stod(val); }
-    else if (key.compare("xi") == 0)    { xi = std::stod(val); }
-    else if (key.compare("nu_sigma") == 0) { nu_sigma = std::stod(val); }
-    else if (key.compare("nu_xi") == 0)    { nu_xi = std::stod(val); }
+    else if (key.compare("tau") == 0) { tau = std::stod(val); }
+    else if (key.compare("xi") == 0)  { xi = std::stod(val); }
+    else if (key.compare("beta_tau") == 0) { beta_tau = std::stod(val); }
+    else if (key.compare("beta_xi") == 0)  { beta_xi = std::stod(val); }
   }
 
   /* prepare the required distributions. */
   std::uniform_int_distribution<std::size_t> idx{0, n - 1};
   std::uniform_int_distribution<std::size_t> bin{0, 1};
-  std::normal_distribution<double> nrm{0, 1};
   gen.seed(seed);
 
   /* compute each row of the measurement matrix. */
@@ -107,7 +115,7 @@ static void inst_init (int argc, char **argv) {
 
   /* fill the feature vector with spikes. */
   std::size_t spikes = 0;
-  x0.resize(n, 1);
+  x0.resize(n);
   x0.setZero();
   do {
     /* sample a random spike index. */
@@ -154,5 +162,10 @@ static void inst_init (int argc, char **argv) {
 
   /* double the result, yielding the lipschitz constant. */
   L = 2 * ev;
+
+  /* compute the diagonal elements of the gramian matrix. */
+  delta.resize(n);
+  for (std::size_t i = 0; i < n; i++)
+    delta(i) = A.col(i).squaredNorm();
 }
 
