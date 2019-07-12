@@ -70,7 +70,13 @@ int main (int argc, char **argv) {
 
     /* sample w. */
     for (std::size_t i = 0; i < n; i++)
-      w(i) = igrnd(std::sqrt(xi) / (std::abs(x(i)) + 1e-3), xi);
+      w(i) = igrnd(std::sqrt(xi) / (std::abs(x(i)) + 1e-6), xi);
+
+    /* sample xi. */
+    xi = igrnd(std::sqrt(beta_xi / w.array().inverse().sum()), beta_xi);
+
+    /* sample tau. */
+    tau = igrnd(std::sqrt(beta_tau / (y - A * x).squaredNorm()), beta_tau);
 
     /* check if the sample should be stored. */
     if (it >= burn_iters) {

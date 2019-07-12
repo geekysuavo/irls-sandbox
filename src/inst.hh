@@ -169,3 +169,30 @@ static void inst_init (int argc, char **argv) {
     delta(i) = A.col(i).squaredNorm();
 }
 
+/* igrnd(): draw a random sample from an inverse Gaussian distribution.
+ *
+ * arguments:
+ *  @mu: mean parameter.
+ *  @lambda: shape parameter.
+ */
+static double igrnd(double mu, double lambda) {
+  /* draw a standard normal variate and a standard uniform variate. */
+  const double z = nrm(gen);
+  const double u = unif(gen);
+
+  /* square the normal variate. */
+  const double y = std::pow(z, 2);
+
+  /* compute intermediate quantities. */
+  const double B = mu / (2 * lambda);
+  const double A = mu * y * B;
+  const double C = 4 * mu * lambda * y + mu * mu * y * y;
+
+  /* compute the two roots to the associated quadratic function. */
+  const double x1 = mu + A - B * std::sqrt(C);
+  const double x2 = mu * mu / x1;
+
+  /* return one of the roots, based on the uniform deviate. */
+  return (u <= mu / (mu + x1) ? x1 : x2);
+}
+
