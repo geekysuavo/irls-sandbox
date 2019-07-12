@@ -9,10 +9,15 @@ int main (int argc, char **argv) {
   /* initialize the problem instance. */
   inst_init(argc, argv);
 
-  /* initialize the estimate. */
-  Eigen::VectorXd x;
-  x.resize(n);
-  x.setZero();
+  /* initialize the mean of x. */
+  Eigen::VectorXd mu;
+  mu.resize(n);
+  mu.setZero();
+
+  /* initialize the variance of x. */
+  Eigen::VectorXd gamma;
+  gamma.resize(n);
+  gamma.setOnes();
 
   /* initialize an auxiliary variable. */
   Eigen::VectorXd z;
@@ -29,17 +34,20 @@ int main (int argc, char **argv) {
 
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
-    /* update the estimate. */
-    z = x;
-    x = (1/sigma2) * (L * z - 2 * A.transpose() * (A * z - y)).array()
-      / (L/sigma2 + w.array() / xi);
+    /* update the mean. */
+    z = mu;
+    mu = (1/sigma2) * (L * z - 2 * A.transpose() * (A * z - y)).array()
+       / (L/sigma2 + w.array() / xi);
+
+    /* update the variance. */
+    gamma = (w.array() / xi + delta.array() / sigma2).inverse();
 
     /* update the weights. */
-    w = (x.array().abs2() + 1e-6).sqrt().inverse();
+    w = (mu.array().abs2() + gamma.array()).sqrt().inverse();
   }
 
-  /* output the final estimate with zero variance. */
+  /* output the final mean and variance estimates. */
   for (std::size_t i = 0; i < n; i++)
-    std::cout << x(i) << " " << 0 << "\n";
+    std::cout << mu(i) << " " << gamma(i) << "\n";
 }
 
