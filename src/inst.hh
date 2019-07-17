@@ -18,6 +18,7 @@
  *
  *  @seed: pseudorandom number generator seed.
  *  @stdev: standard deviation of the measurement errors.
+ *  @orth: whether or not to orthogonalize the sensing matrix rows.
  *
  *  @A: measurement/sensing matrix, @m by @n.
  *  @x0: ground truth solution vector.
@@ -30,6 +31,7 @@ std::size_t m = 50;
 std::size_t n = 100;
 std::size_t seed = 47251;
 double stdev = 0.001;
+bool orth = false;
 Eigen::MatrixXd A;
 Eigen::VectorXd y;
 Eigen::VectorXd x0;
@@ -69,7 +71,7 @@ std::uniform_real_distribution<double> unif{0, 1};
 
 /* inst_init(): initialize the current problem instance.
  */
-static void inst_init (int argc, char **argv) {
+static void inst_init(int argc, char **argv) {
   /* parse the runtime arguments. */
   for (std::size_t i = 1; i < argc; i++) {
     /* get the current argument. */
@@ -83,7 +85,13 @@ static void inst_init (int argc, char **argv) {
     auto val = arg.substr(idx + 1);
 
     /* run very basic argument parsing. */
-    if      (key.compare("k") == 0) { k = std::stoi(val); }
+    if (key.compare("orth") == 0) {
+      if (val.compare("y") == 0 ||
+          val.compare("yes") == 0 ||
+          val.compare("true") == 0)
+        orth = true;
+    }
+    else if (key.compare("k") == 0) { k = std::stoi(val); }
     else if (key.compare("m") == 0) { m = std::stoi(val); }
     else if (key.compare("n") == 0) { n = std::stoi(val); }
     else if (key.compare("seed")  == 0) { seed = std::stoi(val); }
@@ -111,6 +119,13 @@ static void inst_init (int argc, char **argv) {
 
     /* normalize the row to unit length. */
     A.row(i).normalize();
+  }
+
+  /* if requested, perform complete row-orthonormalization. */
+  if (orth) {
+    using SVD = Eigen::JacobiSVD<decltype(A)>;
+    SVD svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    A = svd.matrixV().transpose();
   }
 
   /* fill the feature vector with spikes. */
