@@ -33,8 +33,7 @@ int main(int argc, char **argv) {
 
     /* update the weights. */
     z = x.array().abs2();
-    w = ((4*xi * z.array() + 9).sqrt() - 3)
-      / (2 * z.array());
+    w = ((4*xi * z.array() + 9).sqrt() - 3) / (2 * z.array());
   }
 
   /* output the final estimate with zero variance. */
