@@ -27,10 +27,10 @@ int main(int argc, char **argv) {
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
     /* dual ascent iterations. */
-    const double w_min = w.minCoeff();
+    const double step = w.minCoeff();
     for (std::size_t jt = 0; jt < dual_iters; jt++) {
       /* update the lagrange multipliers. */
-      lambda += (y - A * x) / w_min;
+      lambda += step * (y - A * x);
 
       /* update the estimate from the lagrange multipliers. */
       x = (A.transpose() * lambda).cwiseQuotient(w);
