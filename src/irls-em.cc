@@ -5,7 +5,7 @@
 
 #include "src/inst.hh"
 
-int main (int argc, char **argv) {
+int main(int argc, char **argv) {
   /* initialize the problem instance. */
   inst_init(argc, argv);
 
