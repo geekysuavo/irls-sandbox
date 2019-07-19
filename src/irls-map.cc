@@ -24,12 +24,15 @@ int main(int argc, char **argv) {
   w.resize(n);
   w.setOnes();
 
+  /* precompute a scale factor for the x-update. */
+  const double Lt2 = L * tau / 2;
+
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
     /* update the estimate. */
     z = x;
-    x = (L*tau * z - 2*tau * A.transpose() * (A * z - y)).array()
-      / (L*tau + w.array());
+    x = (Lt2 * z - tau * A.transpose() * (A * z - y)).array()
+      / (Lt2 + w.array());
 
     /* update the weights. */
     z = x.array().abs2();
