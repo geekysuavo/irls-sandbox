@@ -14,30 +14,29 @@ int main(int argc, char **argv) {
   x.resize(n);
   x.setZero();
 
+  /* initialize an auxiliary variable. */
+  Eigen::VectorXd z;
+  z.resize(n);
+  z.setZero();
+
   /* initialize the weights. */
   Eigen::VectorXd w;
   w.resize(n);
   w.setOnes();
 
-  /* initialize the lagrange multipliers. */
-  Eigen::VectorXd lambda;
-  lambda.resize(m);
-  lambda.setZero();
+  /* precompute a scale factor for the x-update. */
+  const double Lt2 = L * tau / 2;
 
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
-    /* dual ascent iterations. */
-    const double kappa = w.minCoeff();
-    for (std::size_t jt = 0; jt < dual_iters; jt++) {
-      /* update the lagrange multipliers. */
-      lambda += kappa * (y - A * x);
-
-      /* update the estimate from the lagrange multipliers. */
-      x = (A.transpose() * lambda).cwiseQuotient(w);
-    }
+    /* update the estimate. */
+    z = x;
+    x = (Lt2 * z - tau * A.transpose() * (A * z - y)).array()
+      / (Lt2 + w.array());
 
     /* update the weights. */
-    w = (x.array().abs2() + 1e-6).sqrt().inverse();
+    z = x.array().abs2();
+    w = ((4 * xi * z.array() + 9).sqrt() - 3) / (2 * z.array());
   }
 
   /* output the final estimate with zero variance. */

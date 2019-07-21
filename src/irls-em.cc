@@ -5,7 +5,7 @@
 
 #include "src/inst.hh"
 
-int main (int argc, char **argv) {
+int main(int argc, char **argv) {
   /* initialize the problem instance. */
   inst_init(argc, argv);
 
@@ -24,17 +24,18 @@ int main (int argc, char **argv) {
   w.resize(n);
   w.setOnes();
 
-  /* precompute the noise variance. */
-  const double sigma2 = std::pow(sigma, 2);
+  /* precompute a scale factor for the x-update. */
+  const double Lt2 = L * tau / 2;
 
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
     /* update the estimate. */
-    z = ((L/2) * x - A.transpose() * (A * x - y)) / sigma2;
-    x = z.array() / ((L/2) / sigma2 + w.array() / xi);
+    z = x;
+    x = (Lt2 * z - tau * A.transpose() * (A * z - y)).array()
+      / (Lt2 + w.array());
 
     /* update the weights. */
-    w = (x.array().abs2() + 1e-6).sqrt().inverse();
+    w = (xi * x.array().abs2().inverse()).sqrt();
   }
 
   /* output the final estimate with zero variance. */
