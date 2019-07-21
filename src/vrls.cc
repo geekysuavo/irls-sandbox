@@ -29,12 +29,15 @@ int main(int argc, char **argv) {
   nu.resize(n);
   nu.setOnes();
 
+  /* precompute a scale factor for the x-update. */
+  const double Lt2 = L * tau / 2;
+
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
     /* update the mean. */
     z = mu;
-    mu = (L*tau * z - 2*tau * A.transpose() * (A * z - y)).array()
-       / (L*tau + nu.array());
+    mu = (Lt2 * z - tau * A.transpose() * (A * z - y)).array()
+       / (Lt2 + nu.array());
 
     /* update the variance. */
     gamma = (nu.array() + tau * delta.array()).inverse();

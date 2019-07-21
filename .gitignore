@@ -1,4 +1,5 @@
 # .gitignore
+.texpadtmp
 .DS_Store
 .doit.db
 .*.swp

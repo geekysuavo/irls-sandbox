@@ -35,22 +35,21 @@ int main(int argc, char **argv) {
 
   /* iterate. */
   for (std::size_t it = 0; it < iters; it++) {
-    /* compute the Lipschitz constant for the majorizing function. */
+    /* compute the Lipschitz constant for the bounded function. */
     const double Lw = 2 * w.maxCoeff();
 
     /* compute the Lagrange multiplier. */
     z = 1 - (2/Lw) * w.array();
     r = y - A * (z.cwiseProduct(x));
-    const double lambda = std::max(0., (Lw/2) * (r.norm() / c - 1));
-    const double beta = (2 * lambda) / (2 * lambda + Lw);
+    const double lambda = std::max(0., (Lw/4) * (r.norm() / c - 1));
+    const double beta = (4 * lambda) / (4 * lambda + Lw);
 
     /* update the estimate. */
-    z = (Lw/2) * x - w.cwiseProduct(x) + lambda * A.transpose() * y;
+    z = (Lw/2) * x - w.cwiseProduct(x) + 2 * lambda * A.transpose() * y;
     x = (2/Lw) * (z - beta * A.transpose() * A * z);
 
     /* update the weights. */
-    z = x.array().abs2();
-    w = ((4*xi * z.array() + 9).sqrt() - 3) / (2 * z.array());
+    w = (x.array().abs2() + 1e-6).sqrt().inverse();
   }
 
   /* output the final estimate with zero variance. */

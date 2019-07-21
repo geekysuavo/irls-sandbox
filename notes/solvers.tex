@@ -1,0 +1,877 @@
+
+% =============================================================================
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{parskip}
+
+\usepackage{color,soul}
+\newcommand{\fixme}{\hl{\textbf{\emph{Fix me!}}}}
+
+\numberwithin{equation}{section}
+
+% =============================================================================
+\newcommand{\lh}{\mathopen{}\mathclose\bgroup\left}
+\newcommand{\rh}{\aftergroup\egroup\right}
+
+%\newcommand{\kldiv}[2]{%
+% \mathbb{D}_{\text{KL}}\lh\{ #1 \,\middle\|\, #2 \rh\}%
+%}
+
+\newcommand{\entropy}[1]{\mathbb{H}\lh[ #1 \rh]}
+\newcommand{\E}[2]{\mathbb{E}_{#2}\lh[ #1 \rh]}
+\newcommand{\m}[1]{\boldsymbol{#1}}
+
+\newcommand{\NormDist}[2]{\mathcal{N}\lh( #1, #2 \rh)}
+\newcommand{\MVNDist}[3]{\mathcal{N}_{#3}\lh( #1, #2 \rh)}
+\newcommand{\IGDist}[2]{\mathcal{IG}\lh( #1, #2 \rh)}
+\newcommand{\INDist}[2]{\mathcal{IN}\lh( #1, #2 \rh)}
+
+\newcommand{\setQ}{\mathcal{Q}}
+\newcommand{\setR}{\mathcal{R}}
+%\newcommand{\setZ}{\mathcal{Z}}
+
+\DeclareMathOperator{\trace}{tr}
+\DeclareMathOperator{\diag}{diag}
+
+% =============================================================================
+\begin{document}
+
+\title{A compendium of IRLS algorithms}
+\author{Bradley Worley}
+\maketitle
+
+\begin{abstract}
+These notes sketch the derivations of all solvers implemented within
+the \texttt{irls-sandbox} repository.
+\end{abstract}
+
+% =============================================================================
+\section{Notation and definitions}
+\label{s:defs}
+\begin{tabular}{ll}
+ $\NormDist{\mu}{\sigma^2}$ &
+ Univariate normal distribution with mean $\mu$ and variance $\sigma^2$
+\\
+ $\MVNDist{\m{\mu}}{\m{\Sigma}}{d}$ &
+ $d$-variate normal distribution with means $\m{\mu}$ and covariances
+ $\m{\Sigma}$
+\\
+ $\IGDist{\alpha}{\beta}$ &
+ Inverse-gamma distribution with shape $\alpha$ and scale $\beta$
+\\
+ $\INDist{\nu}{\lambda}$ &
+ Inverse Gaussian distribution with mean $\nu$ and shape $\lambda$
+\end{tabular}
+
+A random variable $x \sim \NormDist{\mu}{\sigma^2}$ has density:
+\begin{equation*}
+f_{\mathcal{N}}(x; \mu, \sigma^2) =
+ (2 \pi \sigma^2)^{-\frac{1}{2}}
+ \exp\left\{
+  -\frac{(x - \mu)^2}{2 \sigma^2}
+ \right\}
+\end{equation*}
+
+A random variable $\m{x} \sim \MVNDist{\m{\mu}}{\m{\Sigma}}{d}$
+has density:
+\begin{equation*}
+f_{\mathcal{N}_d}(\m{x}; \m{\mu}, \m{\Sigma}) =
+ (2 \pi)^{-\frac{d}{2}} \det(\m{\Sigma})^{-\frac{1}{2}}
+ \exp\left\{
+  -\frac{1}{2} (\m{x} - \m{\mu})^\top \m{\Sigma}^{-1} (\m{x} - \m{\mu})
+ \right\}
+\end{equation*}
+
+A random variable $x \sim \IGDist{\alpha}{\beta}$ has density:
+\begin{equation*}
+f_{\mathcal{IG}}(x; \alpha, \beta) =
+ \frac{\beta^\alpha}{\Gamma(\alpha)}
+ \lh( x^{-1} \rh)^{\alpha + 1}
+ \exp\left\{ -\beta x^{-1} \right\}
+\end{equation*}
+
+A random variable $x \sim \INDist{\nu}{\lambda}$ has density:
+\begin{equation*}
+f_{\mathcal{IN}}(x; \nu, \lambda) =
+ (2 \pi)^{-\frac{1}{2}}
+ \lambda^{\frac{3}{2}}
+ x^{-\frac{3}{2}}
+ \exp\left\{
+  -\frac{\lambda (x - \nu)^2}{2 \nu^2 x}
+ \right\}
+\end{equation*}
+
+% =============================================================================
+\clearpage
+\section{Base probabilistic construction}
+\label{s:const}
+We begin with the measurement model,
+\begin{equation}
+\m{y} = \m{A} \m{x} + \m{\epsilon}
+\end{equation}
+where $\m{y}, \m{\epsilon} \in \setR^m$, $\m{x} \in \setR^n$, and
+$\m{A} \in \setR^{m \times n}$.
+
+Assuming $\forall j: \epsilon_j \mid \tau \sim \mathcal{N}(0, \tau^{-1})$
+yields the likelihood:
+\begin{equation}
+p(\m{y} \mid \m{x}, \tau) =
+ (2 \pi)^{-\frac{m}{2}} \tau^{\frac{m}{2}}
+ \exp\left\{
+  -\frac{\tau}{2} \| \m{y} - \m{A} \m{x} \|_2^2
+ \right\}
+\end{equation}
+Assuming $\forall i: x_i \mid w_i \sim \mathcal{N}(0, w_i^{-1})$
+yields:
+\begin{equation}
+\begin{aligned}
+p(\m{x} \mid \m{w}) &= \prod_{i=1}^n p(x_i \mid w_i)
+\\
+p(x_i \mid w_i) &=
+ (2 \pi)^{-\frac{1}{2}} w_i^{\frac{1}{2}}
+ \exp\left\{
+  -\frac{1}{2} w_i |x_i|^2
+ \right\}
+\end{aligned}
+\end{equation}
+Assuming $\forall i: w_i \mid \xi \sim \mathcal{IG}(1, \xi/2)$
+yields:
+\begin{equation}
+\begin{aligned}
+p(\m{w} \mid \xi) &= \prod_{i=1}^n p(w_i \mid \xi)
+\\
+p(w_i \mid \xi) &=
+ \frac{\xi}{2} w_i^{-2}
+ \exp\left\{ -\frac{\xi}{2} w_i^{-1} \right\}
+\end{aligned}
+\end{equation}
+Assuming $\xi \sim \mathcal{IG}\lh(n+1/2, \beta_\xi/2\rh)$
+yields:
+\begin{equation}
+p(\xi) =
+ \lh(\frac{\beta_\xi}{2}\rh)^{n+\frac{1}{2}}
+ \Gamma\lh(n+\frac{1}{2}\rh)^{-1}
+ \xi^{-n-\frac{3}{2}}
+ \exp\left\{ -\frac{\beta_\xi}{2} \xi^{-1} \right\}
+\end{equation}
+Assuming $\tau \sim \mathcal{IG}\lh((m+1)/2, \beta_\tau/2\rh)$
+yields:
+\begin{equation}
+p(\tau) =
+ \lh(\frac{\beta_\tau}{2}\rh)^{\frac{m+1}{2}}
+ \Gamma\lh(\frac{m+1}{2}\rh)^{-1}
+ \tau^{-\frac{m+3}{2}}
+ \exp\left\{ -\frac{\beta_\tau}{2} \tau^{-1} \right\}
+\end{equation}
+
+The final joint distribution is given by,
+\begin{equation}
+p(\m{y}, \m{x}, \m{w}, \xi, \tau) =
+ \underbrace{
+  p(\m{y} \mid \m{x}, \tau) \,
+  p(\m{x} \mid \m{w}) \,
+  p(\m{w} \mid \xi)
+ }_{p(\m{y}, \m{x}, \m{w} \mid \xi, \tau)} \,
+ p(\xi) \, p(\tau)
+\end{equation}
+
+% =============================================================================
+\clearpage
+\section{Equality-constrained IRLS}
+\label{s:irls_ec}
+Define the optimization problem as follows:
+\begin{equation}
+\begin{aligned}
+\underset{\m{x}, \m{w}}{\text{minimize}} &\; f(\m{x}, \m{w}) =
+ \frac{1}{2} \sum_{i=1}^n \lh( w_i |x_i|^2 + w_i^{-1} \rh)
+\\
+\text{subject to} &\; \m{y} = \m{A} \m{x}
+\end{aligned}
+\end{equation}
+
+\subsection{Updates to $\m{x}$}
+\subsubsection{Direct}
+To update $\m{x}$, we define $\m{W} : W_{ij} = \delta(i-j) w_i$
+and form the Lagrangian,
+\begin{equation}
+\mathcal{L}(\m{x}, \m{\lambda}) =
+ \frac{1}{2} \m{x}^\top \m{W} \m{x} +
+ \m{\lambda}^\top ( \m{y} - \m{A} \m{x} )
+\end{equation}
+
+Setting the $\m{x}$-gradient equal to zero,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{x}} \mathcal{L}(\m{x}, \m{\lambda}) &=
+ \m{W} \m{x} - \m{A}^\top \m{\lambda}
+\\ \implies
+ \m{x} &= \m{W}^{-1} \m{A}^\top \m{\lambda}
+\end{aligned}
+\end{equation}
+which leads to the dual objective,
+\begin{equation}
+g(\m{\lambda}) =
+ \m{\lambda}^\top \m{y} -
+ \frac{1}{2} \m{\lambda}^\top \m{A} \m{W}^{-1} \m{A}^\top \m{\lambda}
+\end{equation}
+
+Maximizing the dual leads to the final value of the updated $\m{x}$:
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\lambda}} g(\m{\lambda}) &=
+ \m{y} - \m{A} \m{W}^{-1} \m{A}^\top \m{\lambda}
+\\ \implies
+ \m{\lambda} &= \lh( \m{A} \m{W}^{-1} \m{A}^\top \rh)^{-1} \m{y}
+\\ \implies
+ \m{x} &= \m{W}^{-1} \m{A}^\top
+ \lh( \m{A} \m{W}^{-1} \m{A}^\top \rh)^{-1} \m{y}
+\end{aligned}
+\end{equation}
+
+\subsubsection{Dual ascent}
+To avoid matrix inversion, we can perform dual gradient ascent
+to find $\m{\lambda}$,
+\begin{equation}
+\m{\lambda}^{t+1} =
+ \m{\lambda}^t + \kappa \nabla_{\m{\lambda}} g(\m{\lambda}^t)
+\end{equation}
+where the step size $\kappa = \min(\m{w})$ is an approximation of the
+optimal step size $\kappa^* = L_g^{-1}$, where
+\begin{equation}
+L_g =
+ 2 \max\text{eig}\lh( \nabla_{\m{\lambda}}^2 g \rh) =
+ \max\text{eig}\lh( \m{A} \m{W}^{-1} \m{A}^\top \rh) \approx
+ \max_i w_i^{-1} = 1 / \min_i w_i
+\end{equation}
+
+\subsection{Updates to $\m{w}$}
+Updating each $w_i$ by setting partial derivatives equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\forall i:
+\partial_{w_i} f(\m{x}, \m{w}) &=
+ \frac{1}{2} |x_i|^2 - \frac{1}{2} w_i^{-2}
+\\ \implies
+ w_i &= |x_i|^{-1}
+\end{aligned}
+\end{equation}
+which is the uncorrected IRLS weight update.
+In practice, the corrected weight update
+$w_i = (|x_i|^2 + \zeta)^{-\frac{1}{2}}$, where $\zeta > 0$, is
+used.
+
+% =============================================================================
+\clearpage
+\section{Inequality-constrained IRLS}
+\label{s:irls_ic}
+Define the optimization problem as follows:
+\begin{equation}
+\begin{aligned}
+\underset{\m{x}, \m{w}}{\text{minimize}} &\; f(\m{x}, \m{w}) =
+ \frac{1}{2} \sum_{i=1}^n \lh( w_i |x_i|^2 + w_i^{-1} \rh)
+\\
+\text{subject to} &\; \| \m{y} - \m{A} \m{x} \|_2 \le c
+\end{aligned}
+\end{equation}
+
+\subsection{Updates to $\m{x}$}
+To update $\m{x}$, we define $\m{W} : W_{ij} = \delta(i-j) w_i$
+and $h(\m{x}) = \m{x}^\top \m{W} \m{x}$, and form the Lagrangian,
+\begin{equation}
+\mathcal{L}(\m{x}, \lambda) = \frac{1}{2} h(\m{x})
+ + \lambda \lh( \| \m{y} - \m{A} \m{x} \|_2^2 - c^2 \rh)
+\end{equation}
+Applying the following bound for functions $h$ with $L$-Lipschitz
+continuous gradients:
+\begin{equation}
+h(\m{x}) \le h(\m{z})
+ + (\m{x} - \m{z})^\top \nabla_{\m{x}} h(\m{z})
+ + \frac{L}{2} \| \m{x} - \m{z} \|_2^2
+\end{equation}
+yields a majorizing function of the Lagrangian,
+\begin{equation}
+\begin{aligned}
+\mathcal{L}_{\m{z}}(\m{x}, \lambda) &=
+ \frac{1}{2} \m{z}^\top \m{W} \m{z}
+ + (\m{x} - \m{z})^\top \m{W} \m{z}
+ + \frac{L}{4} \| \m{x} - \m{z} \|_2^2
+\\ &\quad
+ + \lambda \lh( \| \m{y} - \m{A} \m{x} \|_2^2 - c^2 \rh)
+\end{aligned}
+\end{equation}
+
+Setting the $\m{x}$-gradient equal to zero yields the primal solution,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{x}} \mathcal{L}_{\m{z}}(\m{x}, \lambda) &=
+ \m{W} \m{z} + \frac{L}{2} ( \m{x} - \m{z} )
+ +2 \lambda \m{A}^\top \m{A} \m{x}
+ -2 \lambda \m{A}^\top \m{y}
+\\ \implies
+ \m{x} &=
+ \frac{2}{L}
+ \lh(
+  \m{I} - \frac{4\lambda}{4\lambda + L} \m{A}^\top \m{A}
+ \rh) \lh(
+  \frac{L}{2} \m{z} - \m{W} \m{z} + 2 \lambda \m{A}^\top \m{y}
+ \rh)
+\end{aligned}
+\end{equation}
+which leads to residuals of the form,
+\begin{equation}
+\m{y} - \m{A} \m{x} = \alpha \m{r}
+\end{equation}
+where,
+\begin{equation}
+\begin{aligned}
+\alpha &= \frac{L}{L + 4 \lambda}
+\\
+\m{r} &= \m{y} - \m{A} \lh( \m{I} - \frac{2}{L} \m{W} \rh) \m{z}
+\end{aligned}
+\end{equation}
+
+Substituting this result into the primal feasibility condition yields,
+\begin{equation}
+\begin{aligned}
+&\| \m{y} - \m{A} \m{x} \|_2^2 - c^2 \le 0
+\\ \implies
+&\lambda = \max\lh\{
+ 0, \frac{L}{4} \lh ( \| \m{r} \|_2 / c - 1 \rh) \rh\}
+\end{aligned}
+\end{equation}
+
+\subsection{Updates to $\m{w}$}
+The updates to each $w_i$ are identical to those in equality-constrained
+IRLS (cf.~\ref{s:irls_ec}). It appears that this method requires more
+iterations than e.g.~IRLC-EC to converge. Modifying the weights to the
+``MAP-form'' seems to increase convergence rate.
+
+% =============================================================================
+\clearpage
+\section{Unconstrained IRLS \emph{via} MAP}
+\label{s:irls_map}
+Define the optimization problem as follows:
+\begin{equation}
+\underset{\m{x}, \m{w}}{\text{minimize}} \; f(\m{x}, \m{w})
+\end{equation}
+where the objective is equal to the negative log-posterior up to a constant
+scale and shift:
+\begin{equation}
+\begin{aligned}
+f(\m{x}, \m{w}) &=
+ -\ln p(\m{y}, \m{x}, \m{w} \mid \xi, \tau)
+\\ &=
+ \frac{\tau}{2} \| \m{y} - \m{A} \m{x} \|_2^2 +
+ \frac{1}{2} \sum_{i=1}^n \lh( w_i |x_i|^2 + \xi w_i^{-1} + 3 \ln w_i \rh)
+\end{aligned}
+\end{equation}
+
+\subsection{Updates to $\m{x}$}
+\subsubsection{Direct}
+Fixing $\m{w}$, defining $\m{W} : W_{ij} = \delta(i-j) w_i$, and setting
+the $\m{x}$-gradient of $f$ equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{x}} f(\m{x}, \m{w}) &=
+  \tau \m{A}^\top \m{A} \m{x} - \tau \m{A}^\top \m{y} + \m{W} \m{x}
+\\ \implies
+ \m{x} &= \tau \lh( \m{W} + \tau \m{A}^\top \m{A} \rh)^{-1}
+ \m{A}^\top \m{y}
+\end{aligned}
+\end{equation}
+which is identical to the $\m{x}$ update in \ref{s:irls_em}.
+
+\subsubsection{Majorize-minimization}
+Bounding the $\ell_2$-norm term leads to an objective that majorizes $f$,
+\begin{equation}
+\begin{aligned}
+f_{\m{z}}(\m{x}, \m{w}) &=
+ \frac{\tau}{2} \| \m{y} - \m{A} \m{z} \|_2^2 +
+ \tau (\m{x} - \m{z})^\top \m{A}^\top (\m{A} \m{z} - \m{y})
+   +\frac{L \tau}{4} \| \m{x} - \m{z} \|_2^2
+\\ &\quad
+ +\frac{1}{2} \sum_{i=1}^n \lh( w_i |x_i|^2 + \xi w_i^{-1} + 3 \ln w_i \rh)
+\end{aligned}
+\end{equation}
+
+Setting the $\m{x}$-gradient of this majorizing function equal to
+zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{x}} f_{\m{z}}(\m{x}, \m{w}) &=
+ \tau \m{A}^\top (\m{A} \m{z} - \m{y}) +
+ \frac{L \tau}{2} (\m{x} - \m{z}) +
+ \m{W} \m{x}
+\\ \implies
+\m{x} &=
+ \lh( \frac{L \tau}{2} \m{I} + \m{W} \rh)^{-1} \lh(
+  \frac{L \tau}{2} \m{z} -  \tau \m{A}^\top (\m{A} \m{z} - \m{y})
+ \rh)
+\end{aligned}
+\end{equation}
+
+\subsection{Updates to $\m{w}$}
+Fixing $\m{x}$ and updating each $w_i$ by setting partial derivatives
+equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\forall i:
+\partial_{w_i} f(\m{x}, \m{w}) &=
+ \frac{1}{2} |x_i|^2 - \frac{\xi}{2} w_i^{-2} + \frac{3}{2} w_i^{-1}
+\\ \implies
+ w_i &= \frac{\sqrt{4 \xi |x_i|^2 + 9} - 3}{2 |x_i|^2}
+\end{aligned}
+\end{equation}
+which is unique, and implies that the canonical uncorrected IRLS weight
+update does not maximize the joint posterior distribution
+$p(\m{x}, \m{w} \mid \m{y}, \xi, \tau)$.
+
+While this update is undefined at $x_i = 0$, its limit is well-defined:
+\begin{equation}
+\underset{x_i \to 0}{\lim} \; w_i = \xi/3
+\end{equation}
+making it prudent to employ a \emph{non-singular} update of the form:
+\begin{equation}
+w_i = \begin{cases}
+ \frac{\sqrt{4 \xi |x_i|^2 + 9} - 3}{2 |x_i|^2} & \text{ if } |x_i| \ne 0
+\\
+ \frac{\xi}{3} & \text{ if } |x_i| = 0
+\end{cases}
+\end{equation}
+
+% =============================================================================
+\clearpage
+\section{Unconstrained IRLS \emph{via} EM}
+\label{s:irls_em}
+Define the optimization problem as follows:
+\begin{equation}
+\underset{\m{x}, q \in \setQ}{\text{minimize}} \; F(\m{x}, q)
+\end{equation}
+where $F$ is a partial variational free energy,
+\begin{equation}
+F(\m{x}, q) =
+ -\E{\ln p(\m{y}, \m{x}, \m{w} \mid \xi, \tau)}{q(\m{w})}
+ -\entropy{q(\m{w})}
+\end{equation}
+and $\setQ$ is the set of all probability distributions over $\m{w}$.
+
+\subsection{Expectation step}
+In the expectation step, we minimize $F$ with respect to $q$. The minimum
+of $F$ is obtained when $q$ is equal to the product of complete conditionals
+on $w_i$ (cf.~\ref{s:grls}), i.e.:
+\begin{equation}
+q(\m{w}) = \prod_{i=1}^n p(w_i \mid \m{y}, \m{x}, \m{w}_{-i}, \xi, \tau)
+\end{equation}
+which can be made apparent by substituting the log-joint into $F$,
+\begin{equation}
+F(\m{x}, q) =
+  \frac{\tau}{2} \| \m{y} - \m{A} \m{x} \|_2^2
+ +\frac{1}{2} \sum_{i=1}^n \E{w_i |x_i|^2 + \xi w_i^{-1} + 3 \ln w_i}{q}
+ -\entropy{q(\m{w})}
+\end{equation}
+and noting that this function is minimized with respect to $q$ when its
+entropy has the same form as the inner sum of expectations.
+
+Therefore, we may then write the free energy as a function:
+\begin{equation}
+\begin{aligned}
+F(\m{x}, \m{\nu_w}, \m{\lambda_w}) &=
+   \frac{\tau}{2} \| \m{y} - \m{A} \m{x} \|_2^2
+ + \frac{1}{2} \sum_{i=1}^n \nu_{w,i} |x_i|^2
+\\ &\quad
+ + \frac{\xi}{2} \sum_{i=1}^n \lh( \nu_{w,i}^{-1} + \lambda_{w,i}^{-1} \rh)
+ + \frac{1}{2} \sum_{i=1}^n \ln \lambda_{w,i}
+\end{aligned}
+\end{equation}
+which can be trivially minimized with respect to $\m{\lambda_w}$,
+\begin{equation}
+\begin{aligned}
+F(\m{x}, \m{\nu_w}) &=
+ \underset{\m{\lambda_w}}{\inf} \; F(\m{x}, \m{\nu_w}, \m{\lambda_w})
+\\ &=
+ \frac{\tau}{2} \| \m{y} - \m{A} \m{x} \|_2^2
+ +\frac{1}{2} \sum_{i=1}^n \lh(
+   \nu_{w,i} |x_i|^2 + \xi \nu_{w,i}^{-1}
+  \rh)
+\end{aligned}
+\end{equation}
+
+Setting the $\m{\nu_w}$-gradient of $F$ equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\forall i: \partial_{\nu_{w,i}} F(\m{x}, \m{\nu_w}) &=
+ \frac{1}{2} |x_i|^2 - \frac{\xi}{2} \nu_{w,i}^{-2}
+\\ \implies
+ \nu_{w,i} &= \sqrt{\xi \lh( |x_i|^2 \rh)^{-1}}
+\end{aligned}
+\end{equation}
+which is equivalent to the uncorrected IRLS update when $\xi = 1$.
+
+\subsection{Maximization step}
+Defining $\m{V} : V_{ij} = \delta(i-j) \nu_{w,i}$ and setting the
+$\m{x}$-gradient of $F$ equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{x}} F(\m{x}, \m{\nu_w}) &=
+  \tau \m{A}^\top \m{A} \m{x} - \tau \m{A}^\top \m{y} + \m{V} \m{x}
+\\ \implies
+ \m{x} &= \tau \lh( \m{V} + \tau \m{A}^\top \m{A} \rh)^{-1}
+ \m{A}^\top \m{y}
+\end{aligned}
+\end{equation}
+which is equivalent to the unconstrained IRLS update for MAP
+(cf.~\ref{s:irls_map}), and admits the same majorize-minimization
+update scheme.
+
+% =============================================================================
+\clearpage
+\section{Unconstrained VRLS}
+\label{s:vrls}
+Define the optimization problem as follows:
+\begin{equation}
+\underset{\m{\eta}}{\text{minimize}} \; F(\m{\eta})
+\end{equation}
+where $F$ is the $\m{\lambda_w}$-minimized variational free energy
+with fixed $(\xi,\tau)$,
+\begin{equation}
+\begin{aligned}
+F(\m{\eta}) &=
+ \underset{\m{\lambda_w}}{\inf}\left\{
+  -\E{\ln p(\m{y}, \m{x}, \m{w} \mid \xi, \tau)}{q(\m{x}, \m{w})}
+  -\entropy{q(\m{x}, \m{w})}
+ \right\}
+\\ &=
+  \frac{\tau}{2} \| \m{y} - \m{A} \m{\mu} \|_2^2
+ +\frac{\tau}{2} \trace(\m{A}^\top \m{A} \m{\Gamma})
+ -\frac{1}{2} \ln\det(\m{\Gamma})
+\\ &\quad
+ +\frac{1}{2} \sum_{i=1}^n \nu_{w,i} \lh( |\mu_i|^2 + \Gamma_{ii} \rh)
+ +\frac{\xi}{2} \sum_{i=1}^n \nu_{w,i}^{-1}
+\end{aligned}
+\end{equation}
+and $\m{\eta} = \{\m{\mu}, \m{\Gamma}, \m{\nu_w} \}$
+denotes the set of nontrivial variational parameters.
+
+\subsection{Updates to $\m{\mu}$}
+\subsubsection{Direct}
+Defining $\m{V} : V_{ij} = \delta(i-j) \nu_{w,i}$ and setting the
+$\m{\mu}$-gradient of $F$ to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\mu}} F(\m{\eta}) &=
+ \tau \m{A}^\top \m{A} \m{\mu} - \tau \m{A}^\top \m{y} + \m{V} \m{\mu}
+\\ \implies
+\m{\mu} &=
+ \tau \lh( \m{V} + \tau \m{A}^\top \m{A} \rh)^{-1} \m{A}^\top \m{y}
+\end{aligned}
+\end{equation}
+This objective also admits a majorize-minimization update scheme.
+
+\subsubsection{Majorize-minimization}
+Bounding the $\ell_2$-norm around $\m{z}$ yields,
+\begin{equation}
+F_{\m{z}}(\m{\eta}) =
+  \tau \m{\mu}^\top \m{A}^\top (\m{A} \m{z} - \m{y}) +
+  \frac{L \tau}{4} \| \m{\mu} - \m{z} \|_2^2
+ + \frac{1}{2} \m{\mu}^\top \m{V} \m{\mu} + \text{const.}
+\end{equation}
+Setting the $\m{\mu}$-gradient equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\mu}} F_{\m{z}}(\m{\eta}) &=
+ \tau \m{A}^\top (\m{A} \m{z} - \m{y}) +
+ \frac{L \tau}{2} (\m{\mu} - \m{z}) +
+ \m{V} \m{\mu}
+\\ \implies
+\m{\mu} &=
+ \lh( \frac{L \tau}{2} \m{I} + \m{V} \rh)^{-1}
+ \lh( \frac{L \tau}{2} \m{z} - \tau \m{A}^\top (\m{A} \m{z} - \m{y}) \rh)
+\end{aligned}
+\end{equation}
+
+\subsection{Updates to $\m{\Gamma}$}
+\subsubsection{Dense updates}
+Setting the $\m{\Gamma}$-gradient of $F$ to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\Gamma}} F(\m{\eta}) &=
+ \frac{\tau}{2} \m{A}^\top \m{A} - \frac{1}{2} \m{\Gamma}^{-1} +
+ \frac{1}{2} \m{V}
+\\ \implies
+\m{\Gamma} &=
+ \lh( \m{V} + \tau \m{A}^\top \m{A} \rh)^{-1}
+\end{aligned}
+\end{equation}
+
+\subsubsection{Diagonal updates}
+Restricting $\m{\Gamma} : \Gamma_{ij}.= \delta(i-j) \gamma_i$ and
+minimizing yields,
+\begin{equation}
+\begin{aligned}
+\forall i : \partial_{\gamma_i} F(\m{\eta}) &=
+ \frac{\tau}{2} \delta_i - \frac{1}{2} \gamma_i^{-1} +
+ \frac{1}{2} \nu_{w,i}
+\\ \implies
+\gamma_i &= \lh( \nu_{w,i} + \tau \delta_i \rh)^{-1}
+\end{aligned}
+\end{equation}
+where $\m{\delta} \triangleq \diag(\m{A}^\top \m{A})$.
+
+\subsection{Updates to $\m{\nu_w}$}
+Setting the $\m{\nu_w}$-gradient of $F$ to zero yields,
+\begin{equation}
+\begin{aligned}
+\forall i : \partial_{\nu_{w,i}} F(\m{\eta}) &=
+ \frac{1}{2} \lh( |\mu_i|^2 + \Gamma_{ii} \rh) -
+ \frac{\xi}{2} \nu_{w,i}^{-2}
+\\ \implies
+\nu_{w,i} &=
+ \sqrt{\xi \lh( |\mu_i|^2 + \Gamma_{ii} \rh)^{-1}}
+\end{aligned}
+\end{equation}
+
+% =============================================================================
+\clearpage
+\section{Unconstrained VRLS (extended)}
+\label{s:vrls_ex}
+Define the optimization problem as follows:
+\begin{equation}
+\underset{\m{\eta}}{\text{minimize}} \; F(\m{\eta})
+\end{equation}
+where $F$ is the $(\m{\lambda_w},\lambda_\xi,\lambda_\tau)$-minimized
+variational free energy,
+\begin{equation}
+\begin{aligned}
+F(\m{\eta}) &=
+ \underset{\m{\lambda_w},\lambda_\xi,\lambda_\tau}{\inf}\left\{
+ -\E{\ln p(\m{y}, \m{x}, \m{w}, \xi, \tau)}{q(\m{x}, \m{w}, \xi, \tau)}
+ -\entropy{q(\m{x}, \m{w}, \xi, \tau)}
+ \right\}
+\\ &=
+  \frac{\nu_\tau}{2} \| \m{y} - \m{A} \m{\mu} \|_2^2
+ +\frac{\nu_\tau}{2} \trace(\m{A}^\top \m{A} \m{\Gamma})
+ -\frac{1}{2} \ln\det(\m{\Gamma})
+\\ &\quad
+ +\frac{1}{2} \sum_{i=1}^n \nu_{w,i} \lh( |\mu_i|^2 + \Gamma_{ii} \rh)
+ +\frac{\nu_\xi}{2} \sum_{i=1}^n \nu_{w,i}^{-1}
+\\ &\quad
+ +\frac{\beta_\xi}{2} \nu_\xi^{-1}
+ +\frac{\beta_\tau}{2} \nu_\tau^{-1}
+\end{aligned}
+\end{equation}
+and $\m{\eta} = \{\m{\mu}, \m{\Gamma}, \m{\nu_w}, \nu_\xi, \nu_\tau \}$
+denotes the set of nontrivial variational parameters.
+
+\subsection{Updates to $\m{\mu}$}
+\subsubsection{Direct}
+\fixme{}
+
+\subsubsection{Majorize-minimization}
+\fixme{}
+
+\subsection{Updates to $\m{\Gamma}$}
+\subsubsection{Dense updates}
+\fixme{}
+
+\subsubsection{Diagonal updates}
+\fixme{}
+
+\subsection{Updates to $\m{\nu_w}$}
+\fixme{}
+
+\subsection{Updates to $\nu_\tau$}
+\fixme{}
+
+\subsection{Updates to $\nu_\xi$}
+\fixme{}
+
+% =============================================================================
+\clearpage
+\section{Gibbs sampling}
+\label{s:grls}
+\subsection{Complete conditional for $\m{x}$}
+\begin{equation}
+p(\m{x} \mid \m{y}, \m{w}, \xi, \tau) \propto
+ \exp\left\{
+  -\frac{\tau}{2} \| \m{y} - \m{A} \m{x} \|_2^2
+  -\frac{1}{2} \sum_{i=1}^n w_i |x_i|^2
+ \right\}
+\end{equation}
+which is $\mathcal{N}_n(\m{\mu}, \m{\Gamma})$ with parameters:
+\begin{equation}
+\begin{aligned}
+\m{\mu} &= \tau \m{\Gamma} \m{A}^\top \m{y}
+\\
+\m{\Gamma} &= \lh( \m{W} + \tau \m{A}^\top \m{A} \rh)^{-1}
+\end{aligned}
+\end{equation}
+
+\subsection{Complete conditional for $\m{w}$}
+\begin{equation}
+p(w_i \mid \m{y}, \m{x}, \m{w}_{-i}, \xi, \tau) \propto
+ w_i^{-\frac{3}{2}}
+ \exp\left\{
+  -\frac{1}{2} w_i |x_i|^2
+  -\frac{\xi}{2} w_i^{-1}
+ \right\}
+\end{equation}
+which is $\mathcal{IN}(\nu_{w,i}, \lambda_{w,i})$ with parameters:
+\begin{equation}
+\begin{aligned}
+\nu_{w,i} &= \sqrt{\frac{\xi}{|x_i|^2}}
+\\
+\lambda_{w,i} &= \xi
+\end{aligned}
+\end{equation}
+
+\subsection{Complete conditional for $\xi$}
+\begin{equation}
+p(\xi \mid \m{y}, \m{x}, \m{w}, \tau) \propto
+ \xi^{-\frac{3}{2}}
+ \exp\left\{
+  -\frac{\xi}{2} \sum_{i=1}^n w_i^{-1}
+  -\frac{\beta_\xi}{2} \xi^{-1}
+ \right\}
+\end{equation}
+which is $\mathcal{IN}(\nu_\xi, \lambda_\xi)$ with parameters:
+\begin{equation}
+\begin{aligned}
+\nu_\xi &= \sqrt{\beta_\xi \lh( \sum_{i=1}^n w_i^{-1} \rh)^{-1}}
+\\
+\lambda_\xi &= \beta_\xi
+\end{aligned}
+\end{equation}
+
+\subsection{Complete conditional for $\tau$}
+\begin{equation}
+p(\tau \mid \m{y}, \m{x}, \m{w}, \xi) \propto
+ \tau^{-\frac{3}{2}}
+ \exp\left\{
+  -\frac{\tau}{2} \| \m{y} - \m{A} \m{x} \|_2^2
+  -\frac{\beta_\tau}{2} \tau^{-1}
+ \right\}
+\end{equation}
+which is $\mathcal{IN}(\nu_\tau, \lambda_\tau)$ with parameters,
+\begin{equation}
+\begin{aligned}
+\nu_\tau &= \sqrt{\beta_\tau \lh( \| \m{y} - \m{A} \m{x} \|_2^2 \rh)^{-1}}
+\\
+\lambda_\tau &= \beta_\tau
+\end{aligned}
+\end{equation}
+
+% =============================================================================
+\clearpage
+\appendix
+\section{Things that eventually need to be rewritten}
+\begin{equation*}
+\begin{aligned}
+F &=
+ \E{-\ln p(\m{y}, \m{x}, \m{w}, \xi, \tau)}{q(\m{x}, \m{w}, \xi, \tau)}
+ -\entropy{q(\m{x}, \m{w}, \xi, \tau)}
+\\ &=
+  \frac{\nu_\tau}{2} \| \m{y} - \m{A} \m{\mu} \|_2^2
+ +\frac{\nu_\tau}{2} \trace(\m{A}^\top \m{A} \m{\Gamma})
+\\ &\quad
+ +\frac{1}{2} \sum_{i=1}^n \nu_{w,i} \lh( |\mu_i|^2 + \Gamma_{ii} \rh)
+\\ &\quad
+ +\frac{\nu_\xi}{2} \sum_{i=1}^n \lh( \nu_{w,i}^{-1} + \lambda_{w,i}^{-1} \rh)
+ + \frac{3}{2} \sum_{i=1}^n \E{\ln w_i}{q(\m{w})}
+\\ &\quad
+ +\frac{\beta_\xi}{2} \lh( \nu_\xi^{-1} + \lambda_\xi^{-1} \rh)
+ +\frac{3}{2} \E{\ln \xi}{q(\xi)}
+\\ &\quad
+ +\frac{\beta_\tau}{2} \lh( \nu_\tau^{-1} + \lambda_\tau^{-1} \rh)
+ +\frac{3}{2} \E{\ln \tau}{q(\tau)}
+\\ &\quad
+ +\frac{1}{2} \sum_{i=1}^n \ln\lambda_{w,i}
+ +\frac{1}{2} \ln\lambda_\xi
+ +\frac{1}{2} \ln\lambda_\tau
+\\ &\quad
+ -\frac{1}{2} \ln\det(\m{\Gamma})
+\end{aligned}
+\end{equation*}
+
+The expected log-precision terms (e.g.~$\E{\ln\xi}{q(\xi)}$) can be
+written in terms of derivatives of modified Bessel functions, but
+have no analytic forms. Rather graciously, they cancel from $F$
+due to,
+\begin{equation}
+\entropy{f_{\mathcal{IN}}(x; \nu, \lambda)} =
+ \frac{1}{2} - \frac{1}{2} \log\lambda
+ + \frac{3}{2} \E{\ln x}{}
+\end{equation}
+
+So we simply drop these terms and add some finishing touches:
+\begin{equation*}
+\begin{aligned}
+F(\m{\mu}, \m{\Gamma}, \m{\nu_w}, \nu_\xi, \nu_\tau) &=
+  \nu_\tau \| \m{y} - \m{A} \m{\mu} \|_2^2
+ +\nu_\tau \trace(\m{A}^\top \m{A} \m{\Gamma})
+\\ &\quad
+ +\sum_{i=1}^n \nu_{w,i} \lh( |\mu_i|^2 + \Gamma_{ii} \rh)
+ +\nu_\xi \sum_{i=1}^n \nu_{w,i}^{-1}
+\\ &\quad
+ +\beta_\xi \nu_\xi^{-1}
+ +\beta_\tau \nu_\tau^{-1}
+ -\ln\det(\m{\Gamma})
+\end{aligned}
+\end{equation*}
+
+Let $V_{ij} = \delta(i-j) \nu_{w,i}$.
+Updating $\m{\mu}$ yields:
+\begin{equation}
+\m{\mu} =
+ \nu_\tau \lh( \m{V} + \nu_\tau \m{A}^\top \m{A} \rh)^{-1} \m{A}^\top \m{y}
+\end{equation}
+
+Updating $\m{\Gamma}$ (resp.~$\m{\gamma}$) yields:
+\begin{equation}
+\begin{aligned}
+\m{\Gamma} &= \lh( \m{V} + \nu_\tau \m{A}^\top \m{A} \rh)^{-1}
+\\
+\forall i: \gamma_i &= \lh( \nu_{w,i} + \nu_\tau \delta_i \rh)^{-1}
+\end{aligned}
+\end{equation}
+
+Updating $\nu_{w,i}$ yields:
+\begin{equation}
+\nu_{w,i} = \sqrt{\nu_\xi \lh( |\mu_i|^2 + \Gamma_{ii} \rh)^{-1}}
+\end{equation}
+
+Updating $\nu_\xi$ yields:
+\begin{equation}
+\nu_\xi = \sqrt{\beta_\xi \lh( \sum_{i=1}^n \nu_{w,i}^{-1} \rh)^{-1}}
+\end{equation}
+
+Updating $\nu_\tau$ yields:
+\begin{equation}
+\nu_\tau =
+ \sqrt{\beta_\tau \lh(
+  \| \m{y} - \m{A} \m{\mu} \|_2^2 + \trace(\m{A}^\top \m{A} \m{\Gamma})
+ \rh)^{-1}}
+\end{equation}
+
+As a sanity check, these updates correspond to the complete conditionals
+produced by Gibbs sampling, with expectations taken in the appropriate
+way.
+
+One interesting note: fixing,
+\begin{enumerate}
+ \item $\nu_\xi = 1$,
+ \item $\nu_\tau = \lambda$, and
+ \item $\m{\Gamma} = \zeta \m{I}$,
+\end{enumerate}
+reduces VRLS back to IRLS with Daubechies' weight correction,
+with $\m{\mu}$ taking the place of $\m{x}$ and $\m{\nu_w}$ taking
+the place of $\m{w}$.
+
+In VRLS, the entropy term $\entropy{q(\m{x})}$ behaves like a log-barrier
+enforcing positivity of the weight corrections,
+$\forall i: \Gamma_{ii} \ge 0$.
+
+% =============================================================================
+\end{document}
