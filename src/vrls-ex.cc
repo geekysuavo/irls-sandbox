@@ -36,8 +36,9 @@ int main(int argc, char **argv) {
   for (std::size_t it = 0; it < iters; it++) {
     /* update the mean. */
     z = mu;
-    mu = (L*nu_tau * z - 2*nu_tau * A.transpose() * (A * z - y)).array()
-       / (L*nu_tau + nu_w.array());
+    const double Lt2 = L * nu_tau / 2;
+    mu = (Lt2 * z - nu_tau * A.transpose() * (A * z - y)).array()
+       / (Lt2 + nu_w.array());
 
     /* update the variance. */
     gamma = (nu_w.array() + nu_tau * delta.array()).inverse();

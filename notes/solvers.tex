@@ -667,26 +667,113 @@ denotes the set of nontrivial variational parameters.
 
 \subsection{Updates to $\m{\mu}$}
 \subsubsection{Direct}
-\fixme{}
+Defining $\m{V} : V_{ij} = \delta(i-j) \nu_{w,i}$, and setting
+the $\m{\mu}$-gradient of $F$ equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\mu}} F(\m{\eta}) &=
+ \nu_\tau \m{A}^\top \m{A} \m{\mu} - \nu_\tau \m{A}^\top \m{y}
+ + \m{V} \m{\mu}
+\\ \implies
+\m{\mu} &=
+ \nu_\tau \lh(
+  \m{V} + \nu_\tau \m{A}^\top \m{A}
+ \rh)^{-1} \m{A}^\top \m{y}
+\end{aligned}
+\end{equation}
 
 \subsubsection{Majorize-minimization}
-\fixme{}
+Bounding the $\ell_2$-norm around $\m{z}$ yields,
+\begin{equation}
+F_{\m{z}}(\m{\eta}) =
+  \nu_\tau \m{\mu}^\top \m{A}^\top (\m{A} \m{z} - \m{y}) +
+  \frac{L \nu_\tau}{4} \| \m{\mu} - \m{z} \|_2^2
+ + \frac{1}{2} \m{\mu}^\top \m{V} \m{\mu} + \text{const.}
+\end{equation}
+Setting the $\m{\mu}$-gradient equal to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\mu}} F_{\m{z}}(\m{\eta}) &=
+ \nu_\tau \m{A}^\top (\m{A} \m{z} - \m{y}) +
+ \frac{L \nu_\tau}{2} (\m{\mu} - \m{z}) +
+ \m{V} \m{\mu}
+\\ \implies
+\m{\mu} &=
+ \lh( \frac{L \nu_\tau}{2} \m{I} + \m{V} \rh)^{-1} \lh(
+  \frac{L \nu_\tau}{2} \m{z} - \nu_\tau \m{A}^\top (\m{A} \m{z} - \m{y})
+ \rh)
+\end{aligned}
+\end{equation}
 
 \subsection{Updates to $\m{\Gamma}$}
 \subsubsection{Dense updates}
-\fixme{}
+Setting the $\m{\Gamma}$-gradient of $F$ to zero yields,
+\begin{equation}
+\begin{aligned}
+\nabla_{\m{\Gamma}} F(\m{\eta}) &=
+ \frac{\nu_\tau}{2} \m{A}^\top \m{A} - \frac{1}{2} \m{\Gamma}^{-1} +
+ \frac{1}{2} \m{V}
+\\ \implies
+\m{\Gamma} &=
+ \lh( \m{V} + \nu_\tau \m{A}^\top \m{A} \rh)^{-1}
+\end{aligned}
+\end{equation}
 
 \subsubsection{Diagonal updates}
-\fixme{}
+Restricting $\m{\Gamma} : \Gamma_{ij}.= \delta(i-j) \gamma_i$ and
+minimizing yields,
+\begin{equation}
+\begin{aligned}
+\forall i : \partial_{\gamma_i} F(\m{\eta}) &=
+ \frac{\nu_\tau}{2} \delta_i - \frac{1}{2} \gamma_i^{-1} +
+ \frac{1}{2} \nu_{w,i}
+\\ \implies
+\gamma_i &= \lh( \nu_{w,i} + \nu_\tau \delta_i \rh)^{-1}
+\end{aligned}
+\end{equation}
+where $\m{\delta} \triangleq \diag(\m{A}^\top \m{A})$.
 
 \subsection{Updates to $\m{\nu_w}$}
-\fixme{}
+Setting the $\m{\nu_w}$-gradient of $F$ to zero yields,
+\begin{equation}
+\begin{aligned}
+\forall i : \partial_{\nu_{w,i}} F(\m{\eta}) &=
+ \frac{1}{2} \lh( |\mu_i|^2 + \Gamma_{ii} \rh) -
+ \frac{\nu_\xi}{2} \nu_{w,i}^{-2}
+\\ \implies
+\nu_{w,i} &=
+ \sqrt{\nu_\xi \lh( |\mu_i|^2 + \Gamma_{ii} \rh)^{-1}}
+\end{aligned}
+\end{equation}
 
 \subsection{Updates to $\nu_\tau$}
-\fixme{}
+Minimizing $F$ with respect to $\nu_\tau$ yields,
+\begin{equation}
+\begin{aligned}
+\partial_{\nu_\tau} F(\m{\eta}) &=
+ \frac{1}{2} \| \m{y} - \m{A} \m{\mu} \|_2^2 +
+ \frac{1}{2} \trace(\m{A}^\top \m{A} \m{\Gamma}) -
+ \frac{\beta_\tau}{2} \nu_\tau^{-2}
+\\ \implies
+\nu_\tau &=
+ \sqrt{\beta_\tau \lh(
+  \| \m{y} - \m{A} \m{\mu} \|_2^2 +
+  \trace(\m{A}^\top \m{A} \m{\Gamma})
+ \rh)^{-1}}
+\end{aligned}
+\end{equation}
 
 \subsection{Updates to $\nu_\xi$}
-\fixme{}
+Minimizing $F$ with respect to $\nu_\xi$ yields,
+\begin{equation}
+\begin{aligned}
+\partial_{\nu_\xi} F(\m{\eta}) &=
+ \frac{1}{2} \sum_{i=1}^n \nu_{w,i}^{-1} - \frac{\beta_\xi}{2} \nu_\xi^{-2}
+\\ \implies
+\nu_\xi &=
+ \sqrt{\beta_\xi \lh( \sum_{i=1}^n \nu_{w,i}^{-1} \rh)^{-1}}
+\end{aligned}
+\end{equation}
 
 % =============================================================================
 \clearpage
@@ -762,116 +849,6 @@ which is $\mathcal{IN}(\nu_\tau, \lambda_\tau)$ with parameters,
 \lambda_\tau &= \beta_\tau
 \end{aligned}
 \end{equation}
-
-% =============================================================================
-\clearpage
-\appendix
-\section{Things that eventually need to be rewritten}
-\begin{equation*}
-\begin{aligned}
-F &=
- \E{-\ln p(\m{y}, \m{x}, \m{w}, \xi, \tau)}{q(\m{x}, \m{w}, \xi, \tau)}
- -\entropy{q(\m{x}, \m{w}, \xi, \tau)}
-\\ &=
-  \frac{\nu_\tau}{2} \| \m{y} - \m{A} \m{\mu} \|_2^2
- +\frac{\nu_\tau}{2} \trace(\m{A}^\top \m{A} \m{\Gamma})
-\\ &\quad
- +\frac{1}{2} \sum_{i=1}^n \nu_{w,i} \lh( |\mu_i|^2 + \Gamma_{ii} \rh)
-\\ &\quad
- +\frac{\nu_\xi}{2} \sum_{i=1}^n \lh( \nu_{w,i}^{-1} + \lambda_{w,i}^{-1} \rh)
- + \frac{3}{2} \sum_{i=1}^n \E{\ln w_i}{q(\m{w})}
-\\ &\quad
- +\frac{\beta_\xi}{2} \lh( \nu_\xi^{-1} + \lambda_\xi^{-1} \rh)
- +\frac{3}{2} \E{\ln \xi}{q(\xi)}
-\\ &\quad
- +\frac{\beta_\tau}{2} \lh( \nu_\tau^{-1} + \lambda_\tau^{-1} \rh)
- +\frac{3}{2} \E{\ln \tau}{q(\tau)}
-\\ &\quad
- +\frac{1}{2} \sum_{i=1}^n \ln\lambda_{w,i}
- +\frac{1}{2} \ln\lambda_\xi
- +\frac{1}{2} \ln\lambda_\tau
-\\ &\quad
- -\frac{1}{2} \ln\det(\m{\Gamma})
-\end{aligned}
-\end{equation*}
-
-The expected log-precision terms (e.g.~$\E{\ln\xi}{q(\xi)}$) can be
-written in terms of derivatives of modified Bessel functions, but
-have no analytic forms. Rather graciously, they cancel from $F$
-due to,
-\begin{equation}
-\entropy{f_{\mathcal{IN}}(x; \nu, \lambda)} =
- \frac{1}{2} - \frac{1}{2} \log\lambda
- + \frac{3}{2} \E{\ln x}{}
-\end{equation}
-
-So we simply drop these terms and add some finishing touches:
-\begin{equation*}
-\begin{aligned}
-F(\m{\mu}, \m{\Gamma}, \m{\nu_w}, \nu_\xi, \nu_\tau) &=
-  \nu_\tau \| \m{y} - \m{A} \m{\mu} \|_2^2
- +\nu_\tau \trace(\m{A}^\top \m{A} \m{\Gamma})
-\\ &\quad
- +\sum_{i=1}^n \nu_{w,i} \lh( |\mu_i|^2 + \Gamma_{ii} \rh)
- +\nu_\xi \sum_{i=1}^n \nu_{w,i}^{-1}
-\\ &\quad
- +\beta_\xi \nu_\xi^{-1}
- +\beta_\tau \nu_\tau^{-1}
- -\ln\det(\m{\Gamma})
-\end{aligned}
-\end{equation*}
-
-Let $V_{ij} = \delta(i-j) \nu_{w,i}$.
-Updating $\m{\mu}$ yields:
-\begin{equation}
-\m{\mu} =
- \nu_\tau \lh( \m{V} + \nu_\tau \m{A}^\top \m{A} \rh)^{-1} \m{A}^\top \m{y}
-\end{equation}
-
-Updating $\m{\Gamma}$ (resp.~$\m{\gamma}$) yields:
-\begin{equation}
-\begin{aligned}
-\m{\Gamma} &= \lh( \m{V} + \nu_\tau \m{A}^\top \m{A} \rh)^{-1}
-\\
-\forall i: \gamma_i &= \lh( \nu_{w,i} + \nu_\tau \delta_i \rh)^{-1}
-\end{aligned}
-\end{equation}
-
-Updating $\nu_{w,i}$ yields:
-\begin{equation}
-\nu_{w,i} = \sqrt{\nu_\xi \lh( |\mu_i|^2 + \Gamma_{ii} \rh)^{-1}}
-\end{equation}
-
-Updating $\nu_\xi$ yields:
-\begin{equation}
-\nu_\xi = \sqrt{\beta_\xi \lh( \sum_{i=1}^n \nu_{w,i}^{-1} \rh)^{-1}}
-\end{equation}
-
-Updating $\nu_\tau$ yields:
-\begin{equation}
-\nu_\tau =
- \sqrt{\beta_\tau \lh(
-  \| \m{y} - \m{A} \m{\mu} \|_2^2 + \trace(\m{A}^\top \m{A} \m{\Gamma})
- \rh)^{-1}}
-\end{equation}
-
-As a sanity check, these updates correspond to the complete conditionals
-produced by Gibbs sampling, with expectations taken in the appropriate
-way.
-
-One interesting note: fixing,
-\begin{enumerate}
- \item $\nu_\xi = 1$,
- \item $\nu_\tau = \lambda$, and
- \item $\m{\Gamma} = \zeta \m{I}$,
-\end{enumerate}
-reduces VRLS back to IRLS with Daubechies' weight correction,
-with $\m{\mu}$ taking the place of $\m{x}$ and $\m{\nu_w}$ taking
-the place of $\m{w}$.
-
-In VRLS, the entropy term $\entropy{q(\m{x})}$ behaves like a log-barrier
-enforcing positivity of the weight corrections,
-$\forall i: \Gamma_{ii} \ge 0$.
 
 % =============================================================================
 \end{document}
