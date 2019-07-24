@@ -12,5 +12,5 @@ Common code:
 Task-related code:
 
 * `eigen.py`: Download and unpack [eigen3](http://eigen.tuxfamily.org)
-* `solvers.py`: Compile all implemented algorithms
+* `binaries.py`: Compile all binaries from source
 

@@ -8,6 +8,11 @@ Common code:
 
 * `inst.hh`: Instance initialization code, common to all solvers.
 
+Gaussian process search code:
+
+* `gp-init.hh`: Generates an initial set of search points.
+* `gp-next.hh`: Returns one or more new candidate points.
+
 Canonical point estimation algorithms:
 
 * `irls-ec.cc`: Equality-constrained IRLS.
