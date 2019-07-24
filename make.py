@@ -2,7 +2,7 @@
 
 # task generator imports.
 from sandbox.eigen import task_eigen3
-from sandbox.solvers import task_solver
+from sandbox.binaries import task_binary
 
 # script entry point.
 if __name__ == '__main__':

@@ -3,8 +3,6 @@
  * Released under the MIT License.
  */
 
-#include "src/inst.hh"
-
 int main(int argc, char **argv) {
   /* initialize the problem instance. */
   inst_init(argc, argv);
