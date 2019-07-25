@@ -18,23 +18,31 @@ def task_binary():
   for name, args in binaries().items():
     # get the associated filenames.
     target = os.path.join('bin', name)
-    header = os.path.join('src', 'inst.hh')
     source = os.path.join('src', f'{name}.cc')
+    header_gp = os.path.join('src', 'gp.hh')
+    header_inst = os.path.join('src', 'inst.hh')
 
     # make a dictionary for argument formatting.
-    fmt = {'target': target, 'header': header, 'source': source}
+    fmt = {'gp': header_gp, 'inst': header_inst,
+           'target': target, 'source': source}
 
     # apply formatting to brace arguments.
     for i, arg in enumerate(args):
       if arg.startswith('{') and arg.endswith('}'):
         args[i] = arg.format(**fmt)
 
+    # determine the file dependencies.
+    deps = []
+    for arg in args:
+      if arg in (source, header_gp, header_inst):
+        deps.append(arg)
+
     # yield a task.
     yield {
       'name': name,
       'actions': [(create_folder, ['bin']),
                   (binary, [args])],
-      'file_dep': [source, header],
+      'file_dep': deps,
       'task_dep': ['eigen3'],
       'targets': [target]
     }
