@@ -35,31 +35,34 @@ def binaries():
   }
 
 
-# solve: execute a solver with a set of parameters.
-def solve(sol='oracle', parms={}):
-  # parse: parse a string into a tuple of tuples.
-  def parse(lines):
-    return tuple(tuple(float(field) for field in line.split())
-                 for line in lines.strip().split('\n'))
+# parse: parse a string into a tuple of tuples.
+def parse(lines):
+  return tuple(tuple(float(field) for field in line.split())
+               for line in lines.strip().split('\n'))
 
+
+# execute: execute a binary with a set of parameters.
+def execute(binary, parms={}, inp=None):
   # build the binary filename and the arguments list.
-  binary = os.path.join('bin', sol)
+  binfile = os.path.join('bin', binary)
   args = [f'{key}={str(val).lower()}' for key, val in parms.items()]
 
   # execute the binary.
-  proc = subprocess.run([binary, *args], encoding='utf-8',
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
+  proc = subprocess.run([binfile, *args], input=inp, encoding='utf-8',
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
   # parse stdout and stderr.
   out = parse(proc.stdout)
   err = parse(proc.stderr)
 
+  # return the result.
+  return (out, err)
+
 
 # coords: map between phase-diagram coordinates and instance coordinates.
 def coords(*args):
   # to_phasediag: map to phase-diagram coordinates.
-  def to_phasediag(m, n, k):
+  def to_phasediag(k, m, n):
     delta = m / n
     rho = k / m
     return (delta, rho)
@@ -76,4 +79,56 @@ def coords(*args):
     return to_instance(*args)
   elif len(args) == 3:
     return to_phasediag(*args)
+
+
+# surrogate: class for managing gaussian process-based surrogate models.
+class surrogate:
+  def __init__(self, seed=0, grid=100, threads=4):
+    # store the sampler parameters.
+    self.seed = seed
+    self.grid = grid
+    self.threads = threads
+
+    # initialize two arrays: one for proposed (unmeasured) samples
+    # and another for measured samples.
+    self.prepared = False
+    self.proposals = []
+    self.samples = []
+
+  def __next__(self):
+    # propose an initial set of random and edge points.
+    if not self.prepared:
+      self.prepare()
+
+    # if the proposal point set has been depleted, generate more.
+    if len(self.proposals) == 0:
+      self.propose()
+
+    # pop a and return proposed point from the list.
+    return coords(*self.proposals.pop())
+
+  def add(self, k, m, n, y, dy):
+    # store the result in phase-diagram coordinates.
+    (delta, rho) = coords(k, m, n)
+    self.samples.append((delta, rho, y, dy))
+
+  def prepare(self, num=10):
+    # execute the gp-init binary.
+    args = {'num': num, 'grid': self.grid, 'seed': self.seed}
+    (out, err) = execute('gp-init', args)
+
+    # store the proposed points.
+    self.proposals += list(out)
+    self.prepared = True
+
+  def propose(self, num=1):
+    # build the input string.
+    inp = '\n'.join(' '.join(str(f) for f in s) for s in self.samples)
+
+    # execute the gp-next binary.
+    args = {'num': num, 'threads': self.threads}
+    (out, err) = execute('gp-next', args, inp)
+
+    # store the proposed points.
+    self.proposals += list(out)
 
