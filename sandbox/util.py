@@ -112,7 +112,7 @@ class surrogate:
     (delta, rho) = coords(k, m, n)
     self.samples.append((delta, rho, y, dy))
 
-  def prepare(self, num=10):
+  def prepare(self, num=5):
     # execute the gp-init binary.
     args = {'num': num, 'grid': self.grid, 'seed': self.seed}
     (out, err) = execute('gp-init', args)
