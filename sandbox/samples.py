@@ -44,6 +44,10 @@ def task_sample():
             for r, r0 in zip(R, R0)]
       return meanvar(ss)
 
+    # get the standard deviation and precision for all experiments.
+    stdev = base_parms['stdev']
+    prec = 1 / stdev**2 if stdev > 0 else 1e9
+
     # initialize a set of surrogate models, one per solver.
     models = {sol: surrogate() for sol in solvers}
 
@@ -58,9 +62,24 @@ def task_sample():
         # construct a list of problems to execute.
         problems = []
         for sol in ['oracle', *solvers]:
+          # gibbs samplers are run for 10x fewer iterations.
+          if 'grls' in sol:
+            iters = 400
+          else:
+            iters = 5000
+
+          # extended algorithms get hyperpriors, others get priors.
+          if '-ex' in sol:
+            prior_parms = {'beta_tau': prec, 'beta_xi': prec}
+          else:
+            prior_parms = {'tau': prec, 'xi': prec}
+
+          # loop over each proposal.
           for k, m, n in proposals:
+            size_parms = {'k': k, 'm': m, 'n': n}
             for seed in S:
-              parms = {**base_parms, 'k': k, 'm': m, 'n': n, 'seed': seed}
+              parms = {**base_parms, **prior_parms, **size_parms,
+                       'iters': iters, 'seed': seed}
               problems.append((sol, parms))
 
         # measure every proposal with each solver.
@@ -88,7 +107,8 @@ def task_sample():
   # ---
 
   # define a reduced set of solvers for which we will sample.
-  solvers = ('irls-ec', 'irls-em', 'vrls', 'vrls-ex')
+  solvers = ('irls-ec', 'irls-em', 'grls', 'vrls',
+             'grls-ex', 'vrls-ex')
 
   # define the set of noise standard deviations.
   stdev = (0, 0.001, 0.01, 0.1)
@@ -100,9 +120,7 @@ def task_sample():
     bindir = 'bin'
 
     # set the base parameters.
-    p = 1 / s**2 if s > 0 else 1e9
-    parms = {'stdev': s, 'tau': p, 'xi': p,
-             'beta_tau': p, 'beta_xi': p}
+    parms = {'stdev': s}
 
     # yield a task.
     yield {
